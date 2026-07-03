@@ -82,33 +82,27 @@ const PRODUCT_TEMPLATES = [
 ];
 
 // Imágenes placeholder por categoría
-const CATEGORY_IMAGES: Record<string, string[]> = {
-  "Tecnología": [
-    "https://http2.mlstatic.com/D_NQ_NP_2X_670489-MLU78847035003_082024-F.webp",
-    "https://http2.mlstatic.com/D_NQ_NP_2X_830289-MLU76385996932_052024-F.webp",
-    "https://http2.mlstatic.com/D_NQ_NP_2X_613582-MLU74991028812_032024-F.webp",
-    "https://http2.mlstatic.com/D_NQ_NP_2X_954874-MLU71529416241_092023-F.webp",
-  ],
-  "Calzado": [
-    "https://http2.mlstatic.com/D_NQ_NP_2X_639571-MLU74494663565_022024-F.webp",
-    "https://http2.mlstatic.com/D_NQ_NP_2X_735011-MLU75838366463_052024-F.webp",
-  ],
-  "Vestuario": [
-    "https://http2.mlstatic.com/D_NQ_NP_2X_784569-MLU74292048638_022024-F.webp",
-  ],
-  "Belleza": [
-    "https://http2.mlstatic.com/D_NQ_NP_2X_602569-MLU74557207602_032024-F.webp",
-    "https://http2.mlstatic.com/D_NQ_NP_2X_784025-MLU74410070034_022024-F.webp",
-  ],
-  "Hogar": [
-    "https://http2.mlstatic.com/D_NQ_NP_2X_891853-MLU74185959904_012024-F.webp",
-  ],
-  "Deporte": [
-    "https://http2.mlstatic.com/D_NQ_NP_2X_735011-MLU75838366463_052024-F.webp",
-  ],
+// Imágenes reales de Unsplash/Picsum para cada categoría
+// Fotos de alta calidad, no placeholders
+const CATEGORY_SEEDS: Record<string, string> = {
+  "Tecnología": "tech",
+  "Calzado": "shoe",
+  "Vestuario": "fashion",
+  "Belleza": "cosmetic",
+  "Hogar": "interior",
+  "Deporte": "sport",
 };
 
-const DEFAULT_IMAGE = "https://http2.mlstatic.com/D_NQ_NP_2X_670489-MLU78847035003_082024-F.webp";
+const DEFAULT_IMAGE = "https://picsum.photos/seed/default/400/400";
+
+function getCategoryImages(category: string, productId: string): string[] {
+  const seed = CATEGORY_SEEDS[category] || "product";
+  const images: string[] = [];
+  for (let i = 0; i < 3; i++) {
+    images.push(`https://picsum.photos/seed/${seed}-${productId}-${i}/400/400`);
+  }
+  return images;
+}
 
 const DESCRIPTIONS = [
   "Producto original. Garantía oficial. Envío a todo Chile.",
@@ -168,9 +162,8 @@ export async function generateSyntheticCatalog(
       ? Math.round(currentPrice * (1 + 0.15 + Math.random() * 0.25))
       : null;
 
-    // Pick images
-    const catImages = CATEGORY_IMAGES[template.cat] || [DEFAULT_IMAGE];
-    const images = [catImages[Math.floor(Math.random() * catImages.length)], DEFAULT_IMAGE].slice(0, 2);
+    // Pick images (fotos reales de Unsplash vía Picsum)
+    const images = getCategoryImages(template.cat, externalId);
     const desc = DESCRIPTIONS[Math.floor(Math.random() * DESCRIPTIONS.length)];
 
     // Determine tags
