@@ -82,26 +82,32 @@ const PRODUCT_TEMPLATES = [
 ];
 
 // Imágenes placeholder por categoría
-// Imágenes reales de Unsplash/Picsum para cada categoría
-// Fotos de alta calidad, no placeholders
-const CATEGORY_SEEDS: Record<string, string> = {
-  "Tecnología": "tech",
-  "Calzado": "shoe",
-  "Vestuario": "fashion",
-  "Belleza": "cosmetic",
-  "Hogar": "interior",
-  "Deporte": "sport",
-};
+// Cache de imágenes de Pexels por categoría para reuso
+const pexelsCache: Record<string, string[]> = {};
 
-const DEFAULT_IMAGE = "https://picsum.photos/seed/default/400/400";
-
-function getCategoryImages(category: string, productId: string): string[] {
-  const seed = CATEGORY_SEEDS[category] || "product";
-  const images: string[] = [];
-  for (let i = 0; i < 3; i++) {
-    images.push(`https://picsum.photos/seed/${seed}-${productId}-${i}/400/400`);
+async function getCategoryImages(category: string, productId: string): Promise<string[]> {
+  if (process.env.PEXELS_API_KEY) {
+    try {
+      const { searchProductImages } = await import("@/lib/images/pexels");
+      if (!pexelsCache[category]) {
+        pexelsCache[category] = await searchProductImages(category, 20);
+      }
+      const imgs = pexelsCache[category] || [];
+      if (imgs.length > 0) {
+        return imgs.slice(0, 3);
+      }
+    } catch {
+      // Fallback a picsum
+    }
   }
-  return images;
+  
+  // Fallback: picsum
+  const seed = category.toLowerCase().replace(/[^a-z]/g, "");
+  return [
+    `https://picsum.photos/seed/${seed}${productId}0/400/400`,
+    `https://picsum.photos/seed/${seed}${productId}1/400/400`,
+    `https://picsum.photos/seed/${seed}${productId}2/400/400`,
+  ];
 }
 
 const DESCRIPTIONS = [
@@ -163,7 +169,7 @@ export async function generateSyntheticCatalog(
       : null;
 
     // Pick images (fotos reales de Unsplash vía Picsum)
-    const images = getCategoryImages(template.cat, externalId);
+    const images = await getCategoryImages(template.cat, externalId);
     const desc = DESCRIPTIONS[Math.floor(Math.random() * DESCRIPTIONS.length)];
 
     // Determine tags
