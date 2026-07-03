@@ -4,6 +4,8 @@
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui";
+import { useCurrency } from "@/components/currency/CurrencySelector";
+import { convertPrice } from "@/lib/currency";
 
 interface ProductCardProps {
   product: {
@@ -21,8 +23,14 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const { currency } = useCurrency();
+  const displayPrice = convertPrice(product.price, currency);
+  const displayOriginalPrice = product.originalPrice ? convertPrice(product.originalPrice, currency) : null;
+  const displayDiscount = displayOriginalPrice
+    ? Math.round(((displayOriginalPrice - displayPrice) / displayOriginalPrice) * 100)
+    : 0;
   const imageUrl = product.thumbnail || product.images[0] || "/placeholder.svg";
-  const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+  // Discount calculated from converted prices above
   const isTrending = product.tags?.includes("trending");
   const isViral = product.tags?.includes("viral");
 
@@ -36,13 +44,13 @@ export function ProductCard({ product }: ProductCardProps) {
             alt={product.title}
             className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
           />
-          {hasDiscount && (
-            <div className="absolute top-2 left-2">
-              <Badge variant="danger">
-                -{product.discount}%
-              </Badge>
-            </div>
-          )}
+            {displayDiscount > 0 && (
+              <div className="absolute top-2 left-2">
+                <Badge variant="danger">
+                  -{displayDiscount}%
+                </Badge>
+              </div>
+            )}
           {isTrending && (
             <div className="absolute top-2 right-2">
               <Badge variant="warning">🔥 Popular</Badge>
@@ -65,13 +73,13 @@ export function ProductCard({ product }: ProductCardProps) {
           </h3>
           <div className="flex items-baseline gap-2">
             <span className="text-lg font-bold text-purple-700">
-              {formatCurrency(product.price)}
-            </span>
-            {hasDiscount && (
-              <span className="text-sm text-gray-400 line-through">
-                {formatCurrency(product.originalPrice!)}
-              </span>
-            )}
+                  {formatCurrency(displayPrice, currency)}
+                </span>
+                {displayOriginalPrice && displayOriginalPrice > displayPrice && (
+                  <span className="text-sm text-gray-400 line-through">
+                    {formatCurrency(displayOriginalPrice, currency)}
+                  </span>
+                )}
           </div>
           {product.soldQuantity > 0 && (
             <p className="text-xs text-gray-400 mt-1">
