@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
-import { downloadProductImages, cleanupOrphanImages } from "@/lib/images/downloader";
+import { uploadProductImages } from "@/lib/images/storage";
 import {
   searchTrendingProducts,
   searchAllTrendingCategories,
@@ -95,20 +95,12 @@ export async function importTrendingProducts(
     }
   }
 
-  // 3. Clean up orphan images
-  const activeIds = (await prisma.product.findMany({
-    where: { source: "mercadolibre" },
-    select: { externalId: true },
-  })).map(p => p.externalId);
-  
-  const cleanedDirs = cleanupOrphanImages(activeIds);
-
-  // 4. Get total count
+  // 3. Get total active count
   const productsInCatalog = await prisma.product.count({
     where: { isActive: true },
   });
 
-  console.log(`[ProductImporter] Done: ${imported} imported, ${updated} updated, ${skipped} skipped, ${errors} errors, ${cleanedDirs} orphan dirs cleaned`);
+  console.log(`[ProductImporter] Done: ${imported} imported, ${updated} updated, ${skipped} skipped, ${errors} errors`);
 
   return {
     imported,
@@ -143,7 +135,7 @@ async function importSingleProduct(
   // Download images if enabled
   let localImages: string[] = [];
   if (shouldDownloadImages && imageUrls.length > 0) {
-    localImages = await downloadProductImages(imageUrls, externalId);
+    localImages = await uploadProductImages(imageUrls, externalId);
   }
 
   // Get description if needed
