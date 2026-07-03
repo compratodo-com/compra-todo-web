@@ -170,7 +170,8 @@ export async function generateSyntheticCatalog(
 
     // Pick images (fotos reales de Unsplash vía Picsum)
     const images = await getCategoryImages(template.cat, externalId);
-    const desc = DESCRIPTIONS[Math.floor(Math.random() * DESCRIPTIONS.length)];
+    const { generateDescription } = await import("@/lib/game/descriptions");
+    const desc = generateDescription(template.title, template.brand, template.cat);
 
     // Determine tags
     const tags: string[] = [];
