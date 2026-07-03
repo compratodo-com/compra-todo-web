@@ -5,16 +5,8 @@
   "outputDirectory": ".next",
   "crons": [
     {
-      "path": "/api/cron/agents?key=@CRON_SECRET&agent=curator",
-      "schedule": "0 */6 * * *"
-    },
-    {
-      "path": "/api/cron/agents?key=@CRON_SECRET&agent=economist",
+      "path": "/api/cron/agents?key=@CRON_SECRET&agent=all",
       "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/tracking?key=@CRON_SECRET",
-      "schedule": "*/5 * * * *"
     }
   ]
 }

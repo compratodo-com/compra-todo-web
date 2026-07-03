@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
-import { getOrderWithTracking } from "@/lib/orders";
+import { getOrderWithTracking, advanceOrderStatus } from "@/lib/orders";
 
 // GET /api/orders/[id]
 export async function GET(
@@ -15,6 +15,9 @@ export async function GET(
     }
 
     const { id } = await params;
+
+    // Auto-advance order status (tracking en vivo)
+    await advanceOrderStatus(id).catch(() => {});
 
     // Check if it's a tracking code instead of ID
     const order = await prisma.order.findFirst({
