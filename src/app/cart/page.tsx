@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { Button, Card } from "@/components/ui";
-import Image from "next/image";
+// Using regular img tag for reliable external image loading
 
 interface CartItem {
   productId: string;
@@ -79,12 +79,10 @@ export default function CartPage() {
               <Card key={item.productId} className="p-4">
                 <div className="flex gap-4">
                   <div className="w-20 h-20 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0">
-                    <Image
+                    <img
                       src={item.image}
                       alt={item.title}
-                      width={80}
-                      height={80}
-                      className="object-contain w-full h-full"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                   <div className="flex-1 min-w-0">

@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+// Using regular img tag for reliable external image loading
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui";
@@ -31,12 +31,10 @@ export function ProductCard({ product }: ProductCardProps) {
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg hover:border-purple-200 transition-all duration-200">
         {/* Image */}
         <div className="relative aspect-square bg-gray-50 overflow-hidden">
-          <Image
+          <img
             src={imageUrl}
             alt={product.title}
-            fill
-            className="object-contain p-4 group-hover:scale-105 transition-transform duration-300"
-            sizes="(max-width: 768px) 50vw, 25vw"
+            className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
           />
           {hasDiscount && (
             <div className="absolute top-2 left-2">

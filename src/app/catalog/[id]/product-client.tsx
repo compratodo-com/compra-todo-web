@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import Image from "next/image";
+// Using regular img tag for reliable external image loading
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { Button, Badge, Skeleton } from "@/components/ui";
@@ -100,13 +100,10 @@ export default function ProductDetailClient() {
         {/* Images */}
         <div>
           <div className="relative aspect-square bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
-            <Image
+            <img
               src={images[selectedImage]}
               alt={product.title}
-              fill
-              className="object-contain p-8"
-              sizes="(max-width: 768px) 100vw, 50vw"
-              priority
+              className="w-full h-full object-contain p-8"
             />
             {product.discount > 0 && (
               <div className="absolute top-4 left-4">
@@ -126,13 +123,11 @@ export default function ProductDetailClient() {
                     i === selectedImage ? "border-purple-600" : "border-gray-200"
                   }`}
                 >
-                  <Image
-                    src={img}
-                    alt=""
-                    width={64}
-                    height={64}
-                    className="object-contain w-full h-full"
-                  />
+                  <img
+                      src={img}
+                      alt=""
+                      className="w-full h-full object-contain"
+                    />
                 </button>
               ))}
             </div>
