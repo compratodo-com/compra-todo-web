@@ -38,6 +38,8 @@ function CheckoutContent() {
   const [savedCoupons, setSavedCoupons] = useState<Coupon[]>([]);
   const [surpriseGift, setSurpriseGift] = useState<SurpriseGift | null>(null);
   const [relatedPacks] = useState<PackPromotion[]>(getRelatedPromotions());
+  const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
+  const [appliedCouponLabel, setAppliedCouponLabel] = useState<string>("");
 
   useEffect(() => {
     const directProduct = searchParams.get("product");
@@ -62,7 +64,8 @@ function CheckoutContent() {
   }, [searchParams]);
 
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-  const totalWithShipping = subtotal + shippingMethod.price;
+  const subtotalAfterDiscount = subtotal * (1 - appliedDiscount / 100);
+  const totalWithShipping = subtotalAfterDiscount + shippingMethod.price;
 
   const handleProceedToShipping = () => setStep("shipping");
   const handleProceedToCoupons = () => {
@@ -75,8 +78,13 @@ function CheckoutContent() {
     setStep("coupons");
   };
 
-  const saveCoupon = () => {
+  const applyCoupon = () => {
     if (!earnedCoupon) return;
+    if (earnedCoupon.type === "discount") {
+      setAppliedDiscount(earnedCoupon.value);
+      setAppliedCouponLabel(earnedCoupon.label);
+    }
+    // Guardar cupón usado
     const updated = [...savedCoupons, earnedCoupon];
     setSavedCoupons(updated);
     localStorage.setItem("compra-todo-coupons", JSON.stringify(updated));
@@ -159,9 +167,10 @@ function CheckoutContent() {
                 <h3 className="font-semibold text-gray-900 mb-3">Resumen</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span className="font-medium">{formatCurrency(subtotal)}</span></div>
+                  {appliedDiscount > 0 && <div className="flex justify-between text-green-600"><span>Descuento ({appliedCouponLabel})</span><span>-{appliedDiscount}%</span></div>}
                   <div className="flex justify-between text-gray-500"><span>Envío</span><span className="text-purple-600 font-medium">Por elegir</span></div>
                   <div className="border-t pt-2 flex justify-between font-bold text-lg">
-                    <span>Total</span><span className="text-purple-700">{formatCurrency(subtotal)}</span>
+                    <span>Total</span><span className="text-purple-700">{formatCurrency(subtotalAfterDiscount)}</span>
                   </div>
                 </div>
                 <Button size="lg" className="w-full mt-4" onClick={handleProceedToShipping}>
@@ -239,8 +248,8 @@ function CheckoutContent() {
               <h3 className="text-lg font-bold text-gray-900 mt-2">{earnedCoupon.description}</h3>
               <p className="text-xs text-gray-400 mt-1 font-mono bg-gray-100 px-2 py-1 rounded inline-block">{earnedCoupon.code}</p>
               <div className="flex gap-2 mt-4 justify-center">
-                <Button size="sm" onClick={saveCoupon}>💾 Guardar cupón</Button>
-                <Button size="sm" variant="ghost" onClick={() => setEarnedCoupon(null)}>No gracias</Button>
+                <Button size="sm" onClick={applyCoupon}>✅ Usar ahora — {earnedCoupon.label}</Button>
+                <Button size="sm" variant="ghost" onClick={() => setEarnedCoupon(null)}>No usar</Button>
               </div>
             </Card>
           )}
@@ -259,10 +268,22 @@ function CheckoutContent() {
           <h2 className="text-2xl font-bold mb-2">🎡 ¡Gira la ruleta!</h2>
           <p className="text-gray-500 mb-8">Gira para ganar descuentos y premios antes de confirmar</p>
 
-          <div className="mb-4 bg-purple-50 rounded-xl p-3">
-            <p className="text-sm text-purple-700">
-              🚚 <strong>{shippingMethod.icon} {shippingMethod.name}</strong>
-            </p>
+          {/* Resumen de descuentos aplicados */}
+          <div className="mb-4 space-y-2 text-sm">
+            <div className="bg-purple-50 rounded-xl p-3 flex justify-between">
+              <span className="text-purple-700">🚚 Envío: <strong>{shippingMethod.icon} {shippingMethod.name}</strong></span>
+              <span className="text-purple-700 font-medium">{shippingMethod.price === 0 ? "Gratis" : formatCurrency(shippingMethod.price)}</span>
+            </div>
+            {appliedDiscount > 0 && (
+              <div className="bg-green-50 rounded-xl p-3 flex justify-between">
+                <span className="text-green-700">🎫 Descuento: <strong>{appliedCouponLabel}</strong></span>
+                <span className="text-green-700 font-medium">-{appliedDiscount}%</span>
+              </div>
+            )}
+            <div className="bg-gray-50 rounded-xl p-3 flex justify-between font-bold">
+              <span>Total a pagar (simulado):</span>
+              <span className="text-purple-700">{formatCurrency(totalWithShipping)}</span>
+            </div>
           </div>
 
           <Roulette onSpin={() => {}} level={1} />
@@ -313,6 +334,7 @@ function CheckoutContent() {
             <div className="space-y-3 text-left">
               <div className="flex justify-between"><span className="text-gray-500">Pedido</span><span className="font-medium">{orderResult.orderNumber}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Envío</span><span className="font-medium">{shippingMethod.icon} {shippingMethod.name}</span></div>
+              {appliedDiscount > 0 && <div className="flex justify-between text-green-600"><span>🎫 Descuento ({appliedCouponLabel})</span><span>-{appliedDiscount}%</span></div>}
               <div className="flex justify-between"><span className="text-gray-500">Total</span><span className="font-bold text-purple-700">{formatCurrency(orderResult.total)}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">🪙 Coins</span><span className="font-bold text-yellow-600">+{orderResult.coinsEarned}</span></div>
             </div>
