@@ -10,9 +10,9 @@ import { prisma } from "@/lib/db/prisma";
 import { uploadProductImages } from "@/lib/images/storage";
 
 interface ImageResult {
-  title: string;
-  url: string;
-  image: string;
+  title?: string;
+  url?: string;
+  image?: string;
 }
 
 export async function huntProductImages(): Promise<{
@@ -58,13 +58,13 @@ export async function huntProductImages(): Promise<{
       if (googleImages.length > 0) {
         // Subir la imagen a nuestro storage
         const uploaded = await uploadProductImages(
-          [googleImages[0].image],
+          [googleImages[0].image || ''],
           p.externalId
         );
-        const imageUrl = uploaded[0] || googleImages[0].image;
+        const imageUrl = uploaded[0] || googleImages[0].image || '';
         await prisma.product.update({
           where: { id: p.id },
-          data: { thumbnail: imageUrl, images: [imageUrl, ...googleImages.slice(1, 3).map(g => g.image)] },
+          data: { thumbnail: imageUrl, images: [imageUrl, ...googleImages.slice(1, 3).map(g => g.image || '').filter(Boolean)] },
         });
         fromGoogle++;
         updated++;
@@ -122,7 +122,7 @@ async function searchGoogleImages(query: string): Promise<ImageResult[]> {
         if (url.includes("placeholder") || url.includes("thumbnail")) return false;
         return url.startsWith("http");
       })
-      .slice(0, 5);
+      .slice(0, 5) as ImageResult[];
   } catch (error) {
     console.error("[GoogleImages] Error:", error);
     return [];
