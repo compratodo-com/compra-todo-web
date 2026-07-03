@@ -8,7 +8,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Button, Badge, Skeleton } from "@/components/ui";
 import { ProductGrid } from "@/components/catalog/ProductCard";
 
-export default function ProductDetailPage() {
+export default function ProductDetailClient() {
   const params = useParams();
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);

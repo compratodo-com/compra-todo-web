@@ -1,11 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 import { ProductGrid } from "@/components/catalog/ProductCard";
 import { prisma } from "@/lib/db/prisma";
+import { buildMetadata, SEO_COPIES } from "@/lib/seo";
 
-// Disable static prerendering - this page needs a database connection
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+export const metadata: Metadata = buildMetadata({
+  title: "La nueva forma de comprar online — Experiencia de compra sin gastar",
+  description:
+    "Descubre Compra-Todo: navega miles de productos reales, compara tendencias, arma tu carrito perfecto y vive la emoción del unboxing. Todo sin gastar un peso. La experiencia de compra más innovadora de Latinoamérica.",
+});
 
 async function getFeaturedProducts() {
   try {
@@ -30,8 +37,7 @@ async function getFeaturedProducts() {
       tags: p.tags,
       categoryName: p.category?.name || null,
     }));
-  } catch (error) {
-    console.error("[Home] DB not available, using empty catalog:", error);
+  } catch {
     return [];
   }
 }
@@ -47,17 +53,14 @@ export default async function HomePage() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <div className="inline-flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-sm mb-6">
-                <span>🎮</span>
-                <span>Simulador de compras — Chile</span>
+                <span>✨</span>
+                <span>Nueva experiencia de compra</span>
               </div>
               <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-4">
-                Compra sin
-                <span className="text-yellow-300"> gastar</span>
+                {SEO_COPIES.heroTitle}
               </h1>
               <p className="text-lg text-purple-100 mb-8 leading-relaxed">
-                La experiencia de compra online más realista. Navega miles de
-                productos reales, aprovecha ofertas, gira la ruleta y sigue tus
-                pedidos por 48 horas como si fueran despachos verdaderos.
+                {SEO_COPIES.heroSubtitle}
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link href="/catalog">
@@ -65,7 +68,7 @@ export default async function HomePage() {
                     size="lg"
                     className="bg-yellow-400 text-purple-900 hover:bg-yellow-300 font-bold text-lg"
                   >
-                    🛍️ Empezar a comprar
+                    🛍️ {SEO_COPIES.heroCTA}
                   </Button>
                 </Link>
                 <Link href="/auth/register">
@@ -87,11 +90,11 @@ export default async function HomePage() {
                 </div>
                 <div className="space-y-3">
                   {[
-                    { icon: "📦", text: "Catálogo con productos reales" },
-                    { icon: "🎡", text: "Ruleta de premios cada compra" },
-                    { icon: "🚚", text: "Tracking realista 24-48 hrs" },
-                    { icon: "🪙", text: "Gana CompraCoins y sube de nivel" },
-                    { icon: "🏆", text: "Misiones, colecciones y ranking" },
+                    { icon: "📦", text: "Miles de productos para explorar" },
+                    { icon: "🎡", text: "Sorteos y experiencias en cada visita" },
+                    { icon: "🚚", text: "Tracking en vivo de tus pedidos" },
+                    { icon: "🪙", text: "Acumula puntos y beneficios" },
+                    { icon: "🏆", text: "Descubre productos en tendencia" },
                   ].map((item, i) => (
                     <div
                       key={i}
@@ -113,17 +116,15 @@ export default async function HomePage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">
-              🔥 Lo más popular
+              🔥 {SEO_COPIES.catalogTitle}
             </h2>
-            <p className="text-gray-500 mt-1">
-              Lo que Chile está comprando (en el juego)
-            </p>
+            <p className="text-gray-500 mt-1">{SEO_COPIES.catalogDesc}</p>
           </div>
           <Link
             href="/catalog"
             className="text-purple-600 hover:text-purple-700 font-medium text-sm"
           >
-            Ver catálogo completo →
+            Explorar catálogo completo →
           </Link>
         </div>
         <ProductGrid products={featuredProducts} />
@@ -132,59 +133,64 @@ export default async function HomePage() {
       {/* How it works */}
       <section className="bg-white py-16">
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-2xl font-bold text-gray-900 text-center mb-12">
-            ¿Cómo funciona?
+          <h2 className="text-2xl font-bold text-gray-900 text-center mb-4">
+            {SEO_COPIES.featuresTitle}
           </h2>
-          <div className="grid md:grid-cols-4 gap-8">
-            {[
-              {
-                step: "1",
-                icon: "🔍",
-                title: "Elige",
-                desc: "Navega miles de productos reales con precios actualizados",
-              },
-              {
-                step: "2",
-                icon: "🎡",
-                title: "Gira",
-                desc: "Gana descuentos y monedas en la ruleta pre-compra",
-              },
-              {
-                step: "3",
-                icon: "📦",
-                title: "Compra",
-                desc: "Usa tu dinero simulado y recibe seguimiento realista",
-              },
-              {
-                step: "4",
-                icon: "🏆",
-                title: "Sube",
-                desc: "Acumula coins, completa misiones y llega a Leyenda",
-              },
-            ].map((item) => (
-              <div key={item.step} className="text-center">
-                <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">{item.icon}</span>
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">
-                  {item.title}
-                </h3>
-                <p className="text-sm text-gray-500">{item.desc}</p>
+          <p className="text-gray-500 text-center mb-12 max-w-2xl mx-auto">
+            Una plataforma diseñada para que disfrutes la emoción de comprar
+            sin preocuparte por el precio. Porque la mejor experiencia de
+            compra es la que no tiene límites.
+          </p>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">🔍</span>
               </div>
-            ))}
+              <h3 className="font-semibold text-gray-900 mb-2">Explora sin límites</h3>
+              <p className="text-sm text-gray-500">
+                Navega miles de productos reales. Marca tus favoritos, compara precios, descubre tendencias.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">🎯</span>
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Vive la experiencia</h3>
+              <p className="text-sm text-gray-500">
+                Arma tu carrito perfecto, recibe tracking en vivo, y siente la emoción de cada compra.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">💎</span>
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-2">Cero riesgo</h3>
+              <p className="text-sm text-gray-500">
+                La mejor parte: no gastas dinero real. Descubre, compara y disfruta sin compromiso.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Disclaimer */}
-      <section className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-6 text-center">
-          <p className="text-sm text-yellow-800 font-medium">
-            ⚠️ <strong>Compra-Todo es un simulador de compras.</strong> Todos
-            los productos, ofertas y seguimientos son parte de un juego con
-            fines de entretenimiento. No se realizará ningún despacho de
-            productos reales. No solicitamos medios de pago reales.
+      {/* CTA Section */}
+      <section className="bg-gradient-to-r from-purple-600 to-indigo-700 py-16">
+        <div className="max-w-4xl mx-auto px-4 text-center text-white">
+          <h2 className="text-3xl font-bold mb-4">
+            ¿Listo para una nueva forma de comprar?
+          </h2>
+          <p className="text-purple-100 mb-8 text-lg">
+            Únete a miles de personas que ya descubrieron la experiencia de
+            compra más innovadora de Latinoamérica.
           </p>
+          <Link href="/auth/register">
+            <Button
+              size="lg"
+              className="bg-white text-purple-700 hover:bg-gray-100 font-bold text-lg"
+            >
+              Crear cuenta gratis — Empieza ahora
+            </Button>
+          </Link>
         </div>
       </section>
     </div>
