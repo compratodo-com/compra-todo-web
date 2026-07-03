@@ -199,3 +199,27 @@ export async function advanceOrderStatus(orderId: string) {
 
   return updated;
 }
+
+/**
+ * Avanza todos los pedidos activos al siguiente estado si corresponde.
+ */
+export async function advanceAllOrders(): Promise<{ checked: number; updated: number }> {
+  const activeOrders = await prisma.order.findMany({
+    where: {
+      status: { notIn: ["delivered", "cancelled"] },
+    },
+    include: {
+      events: { orderBy: { createdAt: "asc" } },
+    },
+  });
+
+  let updated = 0;
+  for (const order of activeOrders) {
+    const result = await advanceOrderStatus(order.id);
+    if (result && result.status !== order.status) {
+      updated++;
+    }
+  }
+
+  return { checked: activeOrders.length, updated };
+}
