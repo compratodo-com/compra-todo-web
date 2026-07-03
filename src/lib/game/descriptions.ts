@@ -1,115 +1,102 @@
 /**
- * Generador de descripciones para productos
- * Crea descripciones relevantes según marca, categoría y nombre del producto.
- * Usa plantillas curadas por categoría + detalles específicos del producto.
+ * Generador de descripciones detalladas por producto.
+ * Cada categoría tiene descripciones únicas con características específicas.
+ * NO usa IA — todo está curado manualmente por categoría.
  */
 
-const CATEGORY_TEMPLATES: Record<string, string[]> = {
-  "Tecnología": [
-    "{producto} original. Garantía oficial del fabricante. {caracteristicas} Ideal para quienes buscan lo último en tecnología con rendimiento superior.",
-    "{producto} {marca} con la más alta calidad y rendimiento. {caracteristicas} Producto sellado de fábrica con garantía oficial.",
-    "Descubre el {producto} y lleva tu experiencia tecnológica al siguiente nivel. {caracteristicas} Compatible con los últimos estándares del mercado.",
-  ],
-  "Celulares": [
-    "{producto} {marca} original. {caracteristicas} Perfecto para fotografía, gaming y productividad. Batería de larga duración.",
-    "Smartphone {producto} con diseño premium y {caracteristicas}. Pantalla de alta resolución y cámara profesional.",
-  ],
-  "Calzado": [
-    "{producto} {marca} original. {caracteristicas} Diseñadas para brindar la máxima comodidad en tu día a día. Materiales premium.",
-    "Zapatillas {producto} con {caracteristicas}. Ideal para uso diario con estilo y confort garantizado.",
-  ],
-  "Zapatillas": [
-    "{producto} {marca} originales. {caracteristicas} La combinación perfecta entre estilo, comodidad y durabilidad.",
-    "{producto} con {caracteristicas}. Diseño icónico que nunca pasa de moda. Cómodas y versátiles.",
-  ],
-  "Vestuario": [
-    "Prenda {producto} {marca} original. {caracteristicas} Confeccionada con materiales de alta calidad para mayor durabilidad y confort.",
-    "{producto} {marca}. {caracteristicas} Diseño clásico y atemporal. Ideal para cualquier ocasión.",
-  ],
-  "Belleza": [
-    "{producto} {marca} original. {caracteristicas} Fragancia de larga duración con notas únicas y sofisticadas.",
-    "{producto} de {marca}. {caracteristicas} Producto premium con los mejores ingredientes.",
-  ],
-  "Hogar": [
-    "{producto} {marca}. {caracteristicas} Diseñado para brindar funcionalidad y estilo a tu hogar.",
-    "{producto} con {caracteristicas}. La mejor relación calidad-precio del mercado.",
-  ],
-  "Deporte": [
-    "{producto} {marca} original. {caracteristicas} Equipamiento deportivo de alta calidad para rendir al máximo.",
-    "{producto} con {caracteristicas}. Ideal para entrenamiento y competencia.",
-  ],
-  "Juguetes": [
-    "{producto} original. {caracteristicas} Horas de diversión garantizada para los más pequeños.",
-  ],
+type ProductInfo = {
+  title: string;
+  brand: string | null;
+  category: string | null;
 };
 
-const DEFAULT_TEMPLATES = [
-  "{producto} original. {caracteristicas} Producto de alta calidad con garantía oficial. Envío a todo Chile.",
-  "{producto} con {caracteristicas}. La mejor opción para quienes buscan calidad y buen precio.",
+// ─── DESCRIPCIONES ESPECÍFICAS POR CATEGORÍA ───
+
+const DESCRIPTIONS: Record<string, (info: ProductInfo) => string> = {
+  "Celulares": (p) =>
+    `${p.title} de ${p.brand || "Samsung"} combina un potente procesador con una pantalla de alta resolución para ofrecer una experiencia visual inmersiva. Su sistema de cámaras avanzado captura fotos y videos con calidad profesional en cualquier condición de iluminación. Con batería de larga duración y carga rápida, este smartphone está diseñado para acompañarte todo el día. Incluye las últimas características en conectividad 5G, almacenamiento amplio y un diseño premium resistente al agua. Ideal para usuarios que buscan rendimiento, estilo y la mejor tecnología móvil del mercado.`,
+
+  "Tecnología": (p) =>
+    `${p.title} de ${p.brand || "la marca"} representa lo último en innovación tecnológica. Diseñado con componentes de alta calidad, ofrece un rendimiento superior para las tareas más exigentes. Su diseño moderno y funcional se integra perfectamente en cualquier espacio. Con características avanzadas como conectividad inalámbrica, pantalla de alta definición y eficiencia energética, es la elección ideal para quienes valoran la calidad y la tecnología de punta.`,
+
+  "Computación": (p) =>
+    `${p.title} de ${p.brand || "la marca"} está equipada con procesador de última generación y memoria de alta velocidad para manejar múltiples tareas con fluidez. Su pantalla de alta definición con colores precisos es ideal para trabajo creativo y entretenimiento. Incluye almacenamiento SSD ultrarrápido, conectividad WiFi 6 y un diseño delgado y portátil. Con batería de larga duración, es perfecta para profesionales que necesitan rendimiento donde sea.`,
+
+  "Calzado": (p) =>
+    `${p.title} de ${p.brand || "la marca"} ofrecen la combinación perfecta entre estilo, comodidad y durabilidad. Con materiales premium y suela de alta tracción, están diseñadas para el uso diario y actividades deportivas. Su plantilla ergonómica con amortiguación avanzada brinda confort durante horas. El diseño moderno y versátil combina con cualquier outfit, mientras que los refuerzos estratégicos garantizan una larga vida útil.`,
+
+  "Zapatillas": (p) =>
+    `${p.title} de ${p.brand || "la marca"} son el calzado deportivo que combina tecnología y estilo. Su mediasuela con amortiguación de última generación absorbe impactos y brinda retorno de energía en cada paso. El upper de materiales transpirables mantiene tus pies frescos y secos. La suela de goma con patrón multidireccional ofrece tracción superior en cualquier superficie. Con un diseño icónico que trasciende modas, son perfectas tanto para entrenar como para el día a día.`,
+
+  "Vestuario": (p) =>
+    `${p.title} de ${p.brand || "la marca"} está confeccionada con materiales de primera calidad que garantizan durabilidad y confort. Su corte moderno y ajuste perfecto la hacen ideal para cualquier ocasión, desde looks casuales hasta semiformales. Los detalles de confección premium y acabados impecables aseguran una prenda que mantiene su forma lavado tras lavado.`,
+
+  "Belleza": (p) =>
+    `${p.title} de ${p.brand || "la marca"} es una fragancia sofisticada que combina notas olfativas únicas para crear una experiencia sensorial inolvidable. Con ingredientes de la más alta calidad y una fijación de larga duración, esta esencia se convierte en tu sello personal. Su presentación elegante la hace perfecta para regalar o consentirte.`,
+
+  "Hogar": (p) =>
+    `${p.title} de ${p.brand || "la marca"} ha sido diseñado para brindar funcionalidad y estilo a tu hogar. Fabricado con materiales resistentes y acabados de calidad, ofrece durabilidad y un aspecto estético moderno. Su instalación es sencilla y su mantenimiento mínimo. Perfecto para mejorar tu espacio.`,
+
+  "Deporte": (p) =>
+    `${p.title} de ${p.brand || "la marca"} es el equipo deportivo que necesitas para alcanzar tu máximo rendimiento. Fabricado con materiales de alta resistencia y diseño ergonómico, ofrece durabilidad y comodidad durante el entrenamiento. Su construcción profesional soporta el uso intensivo mientras mantiene sus propiedades. Ideal tanto para principiantes como para atletas experimentados.`,
+
+  "Audio": (p) =>
+    `${p.title} de ${p.brand || "la marca"} ofrecen una experiencia de sonido envolvente con cancelación de ruido activa de última generación. La calidad de audio de alta resolución reproduce cada detalle de tu música favorita. Con almohadillas de memory foam y diseño ergonómico, brindan comodidad durante horas de uso. La batería de larga duración y la conectividad Bluetooth los hacen perfectos para el día a día.`,
+
+  "Electrodomésticos": (p) =>
+    `${p.title} de ${p.brand || "la marca"} combina eficiencia energética con tecnología avanzada para facilitar tus tareas diarias. Con múltiples funciones programables y controles intuitivos, su uso es sencillo para toda la familia. Su diseño compacto y moderno se adapta a cualquier espacio, mientras que su construcción robusta garantiza años de funcionamiento confiable.`,
+};
+
+const FALLBACK_DESCRIPTIONS = [
+  (p: ProductInfo) =>
+    `${p.title} de ${p.brand || "primeras marcas"} destaca por su calidad superior y diseño cuidadosamente elaborado. Cada detalle ha sido pensado para ofrecer la mejor experiencia al usuario, con materiales premium que garantizan durabilidad y rendimiento excepcional. Un producto que marca la diferencia.`,
+  
+  (p: ProductInfo) =>
+    `${p.title} es un producto que combina funcionalidad, diseño y calidad de ${p.brand || "primeras marcas"}. Fabricado con materiales seleccionados y bajo estrictos estándares de control, ofrece un rendimiento confiable y una experiencia de usuario superior.`,
 ];
 
-// Características por defecto según la categoría
-const DEFAULT_FEATURES: Record<string, string[]> = {
-  "Tecnología": ["Procesador de última generación", "Pantalla de alta resolución", "Conectividad avanzada", "Diseño moderno y ergonómico"],
-  "Celulares": ["Procesador de alto rendimiento", "Cámara de alta resolución", "Batería de larga duración", "Pantalla AMOLED"],
-  "Calzado": ["Suela antideslizante", "Material transpirable", "Plantilla ergonómica", "Diseño deportivo"],
-  "Zapatillas": ["Suela de goma resistente", "Material transpirable de alta calidad", "Amortiguación avanzada", "Diseño moderno"],
-  "Vestuario": ["Confección premium", "Materiales sostenibles", "Diseño atemporal", "Cómodo y versátil"],
-  "Belleza": ["Fragancia de larga duración", "Ingredientes premium", "Presentación elegante", "Ideal para regalar"],
-  "Hogar": ["Materiales resistentes", "Diseño funcional", "Fácil instalación", "Alta durabilidad"],
-  "Deporte": ["Material resistente", "Diseño ergonómico", "Alta durabilidad", "Uso profesional"],
-};
-
-const DEFAULT_FEATURES_LIST = ["Alta calidad", "Diseño moderno", "Materiales premium", "Garantía oficial"];
-
-function getCategoryKey(productTitle: string, categoryName: string | null): string {
-  const catMap: Record<string, string> = {
-    "Tecnología": "Tecnología", "Celulares": "Celulares", "Electrónica": "Tecnología",
-    "Computación": "Tecnología", "Calzado": "Calzado", "Zapatillas": "Zapatillas",
-    "Vestuario": "Vestuario", "Ropa": "Vestuario", "Belleza": "Belleza",
-    "Hogar": "Hogar", "Deporte": "Deporte", "Deportes": "Deporte",
-    "Juguetes": "Juguetes", "Música": "Tecnología", "Audio": "Tecnología",
-    "Electrodomésticos": "Hogar",
+function getCategoryKey(category: string | null): string {
+  const map: Record<string, string> = {
+    "Celulares": "Celulares", "Smartphones": "Celulares",
+    "Tecnología": "Tecnología", "Electrónica": "Tecnología",
+    "Computación": "Computación", "Computadores": "Computación",
+    "Notebooks": "Computación",
+    "Calzado": "Calzado", "Zapatillas": "Zapatillas",
+    "Vestuario": "Vestuario", "Ropa": "Vestuario",
+    "Belleza": "Belleza", "Cosméticos": "Belleza", "Perfumes": "Belleza",
+    "Hogar": "Hogar", "Muebles": "Hogar",
+    "Deporte": "Deporte", "Deportes": "Deporte", "Fitness": "Deporte",
+    "Audio": "Audio", "Música": "Audio",
+    "Electrodomésticos": "Electrodomésticos",
   };
-  return catMap[categoryName || ""] || "Tecnología";
+  return map[category || ""] || "";
 }
 
 export function generateDescription(
   title: string,
   brand: string | null,
-  categoryName: string | null
+  category: string | null
 ): string {
-  const catKey = getCategoryKey(title, categoryName);
-  const templates = CATEGORY_TEMPLATES[catKey] || DEFAULT_TEMPLATES;
-  const features = DEFAULT_FEATURES[catKey] || DEFAULT_FEATURES_LIST;
+  const catKey = getCategoryKey(category);
+  const info: ProductInfo = { title, brand, category };
   
-  const template = templates[Math.floor(Math.random() * templates.length)];
-  const featureCount = 2 + Math.floor(Math.random() * 2);
-  const selectedFeatures = features.sort(() => Math.random() - 0.5).slice(0, featureCount);
+  if (DESCRIPTIONS[catKey]) {
+    return DESCRIPTIONS[catKey](info);
+  }
   
-  const producto = title.length > 40 ? title.slice(0, 40) + "..." : title;
-  const marca = brand || "la marca";
-  const caracteristicas = selectedFeatures.join(", ").toLowerCase();
-  
-  let desc = template
-    .replace(/{producto}/g, producto)
-    .replace(/{marca}/g, marca)
-    .replace(/{caracteristicas}/g, caracteristicas);
-  
-  // Capitalizar primera letra
-  desc = desc.charAt(0).toUpperCase() + desc.slice(1);
-  
-  return desc;
+  // Fallback
+  const idx = Math.floor(Math.random() * FALLBACK_DESCRIPTIONS.length);
+  return FALLBACK_DESCRIPTIONS[idx](info);
 }
 
-export async function fixAllProductDescriptions(prisma: any) {
+export async function fixAllDescriptions(prisma: any) {
   const products = await prisma.product.findMany({
-    where: { OR: [{ description: null }, { description: "" }] },
+    where: { isActive: true },
     include: { category: { select: { name: true } } },
   });
-  
-  console.log(`Generando descripciones para ${products.length} productos...`);
-  
+
+  console.log(`Generando descripciones específicas para ${products.length} productos...\n`);
+
   let updated = 0;
   for (const p of products) {
     const desc = generateDescription(p.title, p.brand, p.category?.name || null);
@@ -120,7 +107,7 @@ export async function fixAllProductDescriptions(prisma: any) {
     updated++;
     console.log(`  ✅ ${p.title.slice(0, 40)}`);
   }
-  
-  console.log(`\n✅ ${updated} descripciones generadas`);
+
+  console.log(`\n✅ ${updated} descripciones actualizadas`);
   return updated;
 }
