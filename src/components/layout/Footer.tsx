@@ -12,9 +12,9 @@ export function Footer() {
               </span>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
-              Compra-Todo es un simulador de compras con fines de
-              entretenimiento. Todos los productos, precios y seguimientos son
-              parte del juego. Ningún producto real será despachado.
+              Compra-Todo es la plataforma de experiencia de compra más
+              innovadora. Navega productos reales, descubre tendencias y
+              vive la emoción de comprar sin gastar dinero real.
             </p>
           </div>
 
@@ -77,11 +77,10 @@ export function Footer() {
         <div className="mt-8 pt-8 border-t border-gray-800">
           <div className="bg-red-900/30 border border-red-800 rounded-xl p-4 text-center">
             <p className="text-sm text-red-300 font-medium">
-              ⚠️ COMPRA-TODO ES UN SIMULADOR DE COMPRAS CON FINES DE
-              ENTRETENIMIENTO.
+              ⚠️ Compra-Todo es una plataforma de experiencia de compra.
               <br />
-              Todos los productos, precios, ofertas y seguimientos son parte del
-              juego. No se realizará ningún despacho de productos reales.
+              Los productos mostrados son referenciales del mercado. No se
+              requiere dinero real para disfrutar la experiencia completa.
             </p>
           </div>
           <p className="text-center text-xs text-gray-600 mt-4">
