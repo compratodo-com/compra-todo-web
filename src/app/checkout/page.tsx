@@ -94,6 +94,7 @@ function CheckoutContent() {
 
       // Clear cart
       localStorage.setItem("cart", JSON.stringify([]));
+      window.dispatchEvent(new Event("cartUpdated"));
 
       setStep("done");
     } catch (err: any) {

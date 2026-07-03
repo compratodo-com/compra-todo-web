@@ -50,6 +50,7 @@ export default function ProductDetailClient() {
       });
     }
     localStorage.setItem("cart", JSON.stringify(cart));
+    window.dispatchEvent(new Event("cartUpdated"));
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 3000);
   };
