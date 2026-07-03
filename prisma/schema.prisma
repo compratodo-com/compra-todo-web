@@ -1,0 +1,440 @@
+// This is your Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Usuarios y Autenticación ───
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model User {
+  id            String   @id @default(cuid())
+  alias         String   @unique
+  email         String?  @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          String   @default("user") // user, admin
+
+  // Game stats
+  coins         Int      @default(0)
+  totalCoinsEarned Int   @default(0)
+  level         Int      @default(1)
+  xp            Int      @default(0)
+  totalSpent    Float    @default(0) // gasto simulado acumulado
+  streak        Int      @default(0)
+  lastDaily     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  orders        Order[]
+  transactions  Transaction[]
+  missions      UserMission[]
+  spins         Spin[]
+  collections   UserCollection[]
+  favorites     Favorite[]
+  emailPrefs    EmailPreference?
+  agentLogs     AgentLog[]     @relation("AgentLogUser")
+
+  @@map("users")
+}
+
+model EmailPreference {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offers    Boolean @default(true)
+  events    Boolean @default(true)
+  tracking  Boolean @default(true)
+  weekly    Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("email_preferences")
+}
+
+// ─── Catálogo (real, desde APIs) ───
+
+model Category {
+  id          String    @id @default(cuid())
+  externalId  String?   // ID en ML
+  name        String
+  slug        String    @unique
+  description String?
+  image       String?
+  parentId    String?
+  parent      Category? @relation("CategoryParent", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryParent")
+  order       Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  externalId      String   @unique // ID en ML
+  source          String   @default("mercadolibre") // mercadolibre, afiliado
+  title           String
+  description     String?  @db.Text
+  price           Float
+  originalPrice   Float?   // precio "normal" sin descuento
+  currency        String   @default("CLP")
+  images          String[] // array de URLs
+  thumbnail       String?
+  url             String?  // link real del producto (para afiliados)
+  categoryId      String?
+  category        Category? @relation(fields: [categoryId], references: [id])
+  brand           String?
+  condition       String   @default("new") // new, used
+  availableQty    Int      @default(1)
+  soldQuantity    Int      @default(0) // ventas reales desde ML
+  rating          Float?
+  isActive        Boolean  @default(true)
+  isFeatured      Boolean  @default(false)
+  tags            String[] // ["viral","oferta","coleccion"]
+  metadata        Json?    // datos adicionales de la fuente
+  lastSyncedAt    DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  prices          ProductPrice[]
+  orders          OrderProduct[]
+  collections     CollectionProduct[]
+  favorites       Favorite[]
+
+  @@index([categoryId])
+  @@index([externalId])
+  @@index([isActive, isFeatured])
+  @@map("products")
+}
+
+model ProductPrice {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  price     Float
+  recordedAt DateTime @default(now())
+
+  @@index([productId, recordedAt])
+  @@map("product_prices")
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@map("favorites")
+}
+
+// ─── Pedidos Simulados ───
+
+model Order {
+  id          String   @id @default(cuid())
+  orderNumber String   @unique // ej: "CT-20260721-4832"
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      String   @default("confirmed") // confirmed, preparing, picked_up, in_transit, in_hub, out_for_delivery, delivered, cancelled
+  subtotal    Float
+  discount    Float    @default(0)
+  total       Float
+  coinsEarned Int      @default(0)
+  isExpress   Boolean  @default(false)
+  trackingCode String? // ej: "MLC-4832-275"
+  deliveryAddress String?
+  deliveryCommune String?
+  courier     String?  // "Chilexpress", "Starken", "Blue Express"
+  estimatedDelivery DateTime?
+  deliveredAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products    OrderProduct[]
+  events      OrderEvent[]
+  spin        Spin?
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderProduct {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int     @default(1)
+  unitPrice Float
+  totalPrice Float
+
+  @@map("order_products")
+}
+
+model OrderEvent {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status      String   // confirmed, preparing, picked_up, in_transit, in_hub, out_for_delivery, delivered
+  title       String   // texto descriptivo del evento
+  description String?  // detalle adicional
+  location    String?  // "CD Pudahuel", "Hub Quilicura"
+  isMilestone Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([orderId, createdAt])
+  @@map("order_events")
+}
+
+// ─── Economía del Juego ───
+
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // earn_from_order, earn_from_spin, earn_from_mission, earn_from_streak, earn_from_collection, spend_spin, spend_boost, spend_skin, spend_cofre
+  amount      Int
+  balance     Int      // balance after transaction
+  description String?
+  referenceId String?  // orderId, missionId, etc.
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("transactions")
+}
+
+model Level {
+  id            String @id @default(cuid())
+  level         Int    @unique
+  title         String // "Novato", "Cazaofertas", etc.
+  minSpent      Float  // gasto simulado requerido
+  description   String?
+  coinMultiplier Float @default(1.0)
+  benefits      Json?  // qué desbloquea
+  createdAt     DateTime @default(now())
+
+  @@map("levels")
+}
+
+model Spin {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId     String?  @unique // spin asociado a un pedido (pre-checkout)
+  order       Order?   @relation(fields: [orderId], references: [id])
+  type        String   @default("standard") // standard, golden, premium
+  result      String   // coins, discount, boost, nothing
+  rewardValue Float?   // cuanto ganó
+  multiplier  Float    @default(1.0)
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("spins")
+}
+
+// ─── Misiones ───
+
+model Mission {
+  id          String   @id @default(cuid())
+  type        String   // daily, weekly, seasonal, achievement
+  title       String
+  description String
+  requirement String   // qué hay que hacer: "buy_tech", "spend_50000", "complete_3_orders"
+  targetCount Int      // cuánto hay que completar
+  rewardCoins Int
+  rewardXp    Int      @default(0)
+  icon        String?
+  isActive    Boolean  @default(true)
+  seasonStart DateTime?
+  seasonEnd   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userMissions UserMission[]
+
+  @@map("missions")
+}
+
+model UserMission {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  missionId  String
+  mission    Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  progress   Int      @default(0)
+  completed  Boolean  @default(false)
+  completedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, missionId])
+  @@map("user_missions")
+}
+
+// ─── Colecciones ───
+
+model Collection {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  icon        String?
+  rewardCoins Int      @default(0)
+  size        Int      // cuantos productos la componen
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products    CollectionProduct[]
+  users       UserCollection[]
+
+  @@map("collections")
+}
+
+model CollectionProduct {
+  id           String     @id @default(cuid())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order        Int        @default(0)
+
+  @@unique([collectionId, productId])
+  @@map("collection_products")
+}
+
+model UserCollection {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  progress     Int      @default(0)
+  completed    Boolean  @default(false)
+  completedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, collectionId])
+  @@map("user_collections")
+}
+
+// ─── Promociones y Eventos ───
+
+model Promotion {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  type        String   // flash_sale, thematic, seasonal, mystery
+  discountPct Float    @default(0)
+  bannerUrl   String?
+  categoryId  String?
+  productIds  String[] // productos incluidos
+  startsAt    DateTime
+  endsAt      DateTime
+  isActive    Boolean  @default(true)
+  createdBy   String   @default("agent") // agent, admin
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([startsAt, endsAt])
+  @@map("promotions")
+}
+
+model GameEvent {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  type        String   // cyber_day, black_friday, christmas, mothers_day, own_event
+  bannerUrl   String?
+  mechanics   Json?    // reglas del evento
+  startsAt    DateTime
+  endsAt      DateTime
+  isActive    Boolean  @default(true)
+  createdBy   String   @default("agent")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("game_events")
+}
+
+// ─── Agentes ───
+
+model AgentLog {
+  id         String   @id @default(cuid())
+  agent      String   // curator, trend_hunter, promoter, events_director, mail_carrier, optimizer
+  action     String   // qué hizo
+  status     String   // success, warning, error
+  details    Json?    // metadatos de la ejecución
+  createdBy  String?  // userId si fue manual
+  user       User?    @relation("AgentLogUser", fields: [createdBy], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@index([agent, createdAt])
+  @@map("agent_logs")
+}
+
+// ─── Analítica ───
+
+model AnalyticEvent {
+  id        String   @id @default(cuid())
+  name      String   // page_view, add_to_cart, checkout, spin, order_created, etc.
+  userId    String?
+  sessionId String?
+  metadata  Json?    // datos adicionales
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([userId, createdAt])
+  @@map("analytic_events")
+}
