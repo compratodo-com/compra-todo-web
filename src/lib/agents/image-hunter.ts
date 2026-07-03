@@ -112,17 +112,9 @@ async function searchGoogleImages(query: string): Promise<ImageResult[]> {
     const gis = (await import("google-image-sr")).default;
     const results = await gis(query, { safe: false });
     if (!results || !Array.isArray(results)) return [];
-    
-    // Filtrar resultados válidos con URLs de imágenes reales
     return results
-      .filter((r: any) => {
-        if (!r.image || typeof r.image !== "string") return false;
-        const url = r.image;
-        // Excluir placeholders, thumbnails diminutos, etc.
-        if (url.includes("placeholder") || url.includes("thumbnail")) return false;
-        return url.startsWith("http");
-      })
-      .slice(0, 5) as ImageResult[];
+      .filter((r: any) => r?.image && typeof r.image === "string" && r.image.startsWith("http"))
+      .slice(0, 5);
   } catch (error) {
     console.error("[GoogleImages] Error:", error);
     return [];
