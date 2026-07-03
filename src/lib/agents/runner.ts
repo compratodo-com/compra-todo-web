@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db/prisma";
 import { importTrendingProducts } from "@/lib/agents/product-importer";
 import { generateSyntheticCatalog } from "@/lib/agents/synthetic-catalog";
 import { runEconomist } from "@/lib/agents/economist";
+import { huntProductImages } from "@/lib/agents/image-hunter";
 import type { AgentResult } from "@/types";
 
 export abstract class BaseAgent {
@@ -49,6 +50,7 @@ export abstract class BaseAgent {
 // Agent Runner - executes all agents
 export async function runAgent(agentName: string): Promise<AgentResult> {
   const agents: Record<string, BaseAgent> = {
+    image_hunter: new ImageHunterAgent(),
     economist: new EconomistAgent(),
     curator: new CatalogCurator(),
     product_importer: new ProductImporterAgent(),
@@ -454,6 +456,45 @@ class MailCarrier extends BaseAgent {
         sentCount: 0, // Would send on actual implementation
       },
     };
+  }
+}
+
+/**
+ * Image Hunter Agent - Busca imágenes reales en Google Images + Paris.cl
+ * Cada 24h recorre los productos buscando mejorar sus imágenes.
+ */
+class ImageHunterAgent extends BaseAgent {
+  constructor() {
+    super(
+      "image_hunter",
+      "0 4 * * *",
+      "Busca imágenes reales de productos en Google Images y Paris.cl"
+    );
+  }
+
+  async execute(): Promise<AgentResult> {
+    try {
+      const result = await huntProductImages();
+      return {
+        agent: this.name,
+        action: "hunt_images",
+        status: "success",
+        details: {
+          total: result.total,
+          updated: result.updated,
+          fromParis: result.fromParis,
+          fromGoogle: result.fromGoogle,
+          errors: result.errors,
+        },
+      };
+    } catch (error) {
+      return {
+        agent: this.name,
+        action: "hunt_images",
+        status: "error",
+        details: { error: String(error) },
+      };
+    }
   }
 }
 

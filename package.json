@@ -31,6 +31,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",
+    "google-image-sr": "^1.0.0",
     "ioredis": "^5.11.1",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.23.0",
