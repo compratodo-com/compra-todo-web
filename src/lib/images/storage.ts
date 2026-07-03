@@ -1,12 +1,10 @@
 /**
  * Image Storage Utility
  * 
- * Usa Vercel Blob en producción, filesystem local en desarrollo.
- * Las imágenes se descargan desde MercadoLibre y se almacenan
- * de forma persistente.
+ * Usa Vercel Blob en producción (API REST directa, sin SDK),
+ * filesystem local en desarrollo.
  */
 
-import { put, del, list } from "@vercel/blob";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
@@ -15,31 +13,10 @@ import http from "http";
 
 const isProduction = process.env.NODE_ENV === "production";
 const LOCAL_IMAGES_DIR = path.join(process.cwd(), "public", "images", "products");
-const BLOB_PREFIX = "products/";
 
-/** Sube una imagen desde una URL a blob storage (o local) */
-export async function uploadImageFromUrl(
-  imageUrl: string,
-  productExternalId: string
-): Promise<string | null> {
-  try {
-    const ext = path.extname(new URL(imageUrl).pathname) || ".webp";
-    const hash = crypto.createHash("md5").update(imageUrl).digest("hex");
-    const filename = `${hash}${ext}`;
-    const blobPath = `${BLOB_PREFIX}${productExternalId}/${filename}`;
+const BLOB_API_BASE = "https://api.vercel.com/v1/blob";
 
-    if (isProduction) {
-      return await uploadToBlob(imageUrl, blobPath);
-    } else {
-      return await saveLocally(imageUrl, productExternalId, filename);
-    }
-  } catch (error) {
-    console.error(`[ImageStorage] Error uploading ${imageUrl}:`, error);
-    return null;
-  }
-}
-
-/** Sube múltiples imágenes de un producto */
+/** Sube imágenes de un producto desde URLs externas */
 export async function uploadProductImages(
   imageUrls: string[],
   productExternalId: string
@@ -56,33 +33,65 @@ export async function uploadProductImages(
     .map((r) => r.value);
 }
 
+async function uploadImageFromUrl(
+  imageUrl: string,
+  productExternalId: string
+): Promise<string | null> {
+  try {
+    const ext = path.extname(new URL(imageUrl).pathname) || ".webp";
+    const hash = crypto.createHash("md5").update(imageUrl).digest("hex");
+    const filename = `${hash}${ext}`;
+
+    if (isProduction) {
+      return await uploadToBlob(imageUrl, productExternalId, filename);
+    } else {
+      return await saveLocally(imageUrl, productExternalId, filename);
+    }
+  } catch (error) {
+    console.error(`[ImageStorage] Error:`, error);
+    return null;
+  }
+}
+
 async function uploadToBlob(
   imageUrl: string,
-  blobPath: string
+  productExternalId: string,
+  filename: string
 ): Promise<string | null> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    console.warn("[Blob] No BLOB_READ_WRITE_TOKEN configured, falling back to local");
-    return await saveLocally(
-      imageUrl,
-      blobPath.split("/")[1],
-      blobPath.split("/").slice(2).join("/")
-    );
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    console.warn("[Blob] No BLOB_READ_WRITE_TOKEN configured");
+    return await saveLocally(imageUrl, productExternalId, filename);
   }
 
   try {
-    // Download the image first
+    // Download image buffer
     const buffer = await downloadImageBuffer(imageUrl);
     if (!buffer) return null;
 
-    // Upload to Vercel Blob
-    const blob = await put(blobPath, buffer, {
-      access: "public",
-      addRandomSuffix: false,
+    const blobPath = `products/${productExternalId}/${filename}`;
+
+    // Upload via Vercel Blob REST API
+    const response = await fetch(`${BLOB_API_BASE}/put/${blobPath}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/octet-stream",
+        "x-vercel-blob-access": "public",
+      },
+      body: new Uint8Array(buffer),
     });
 
-    return blob.url;
+    if (!response.ok) {
+      const text = await response.text();
+      console.error(`[Blob] Upload failed: ${response.status} ${text}`);
+      return null;
+    }
+
+    const data = await response.json() as { url?: string };
+    return data.url || null;
   } catch (error) {
-    console.error("[Blob] Upload failed:", error);
+    console.error("[Blob] Upload error:", error);
     return null;
   }
 }
@@ -100,19 +109,13 @@ async function saveLocally(
   const localPath = path.join(productDir, filename);
   const relativePath = `/images/products/${productExternalId}/${filename}`;
 
-  if (fs.existsSync(localPath)) {
-    return relativePath;
-  }
+  if (fs.existsSync(localPath)) return relativePath;
 
-  try {
-    const buffer = await downloadImageBuffer(imageUrl);
-    if (!buffer) return null;
-    fs.writeFileSync(localPath, buffer);
-    return relativePath;
-  } catch (error) {
-    console.error(`[Local] Failed to save ${imageUrl}:`, error);
-    return null;
-  }
+  const buffer = await downloadImageBuffer(imageUrl);
+  if (!buffer) return null;
+
+  fs.writeFileSync(localPath, buffer);
+  return relativePath;
 }
 
 function downloadImageBuffer(url: string): Promise<Buffer | null> {
@@ -122,31 +125,17 @@ function downloadImageBuffer(url: string): Promise<Buffer | null> {
       url,
       {
         headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
         },
         timeout: 30000,
       },
       (response) => {
-        if (
-          response.statusCode &&
-          response.statusCode >= 300 &&
-          response.statusCode < 400 &&
-          response.headers.location
-        ) {
-          // Follow redirect
-          const redirectUrl = new URL(
-            response.headers.location,
-            url
-          ).toString();
+        if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+          const redirectUrl = new URL(response.headers.location, url).toString();
           downloadImageBuffer(redirectUrl).then(resolve);
           return;
         }
-
-        if (response.statusCode !== 200) {
-          resolve(null);
-          return;
-        }
+        if (response.statusCode !== 200) { resolve(null); return; }
 
         const chunks: Buffer[] = [];
         response.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -155,31 +144,6 @@ function downloadImageBuffer(url: string): Promise<Buffer | null> {
       }
     );
     req.on("error", () => resolve(null));
-    req.on("timeout", () => {
-      req.destroy();
-      resolve(null);
-    });
+    req.on("timeout", () => { req.destroy(); resolve(null); });
   });
-}
-
-/** Lista todas las imágenes almacenadas para un producto */
-export async function listProductImages(
-  productExternalId: string
-): Promise<string[]> {
-  if (isProduction) {
-    try {
-      const { blobs } = await list({
-        prefix: `${BLOB_PREFIX}${productExternalId}/`,
-      });
-      return blobs.map((b) => b.url);
-    } catch {
-      return [];
-    }
-  } else {
-    const dir = path.join(LOCAL_IMAGES_DIR, productExternalId);
-    if (!fs.existsSync(dir)) return [];
-    return fs
-      .readdirSync(dir)
-      .map((f) => `/images/products/${productExternalId}/${f}`);
-  }
 }
