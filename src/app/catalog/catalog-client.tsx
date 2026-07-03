@@ -5,8 +5,10 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { ProductGrid } from "@/components/catalog/ProductCard";
 import { Input, Button } from "@/components/ui";
+import { useCurrency } from "@/components/currency/CurrencySelector";
 
 function CatalogContent() {
+  const { currency } = useCurrency();
   const searchParams = useSearchParams();
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -21,7 +23,7 @@ function CatalogContent() {
 
   useEffect(() => {
     fetchProducts();
-  }, [selectedCategory, sort, page]);
+  }, [selectedCategory, sort, page, currency]);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -32,6 +34,7 @@ function CatalogContent() {
       params.set("sort", sort);
       params.set("page", String(page));
       params.set("limit", "20");
+      params.set("currency", currency);
 
       const res = await fetch(`/api/catalog?${params}`);
       const data = await res.json();

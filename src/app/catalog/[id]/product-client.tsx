@@ -7,8 +7,10 @@ import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { Button, Badge, Skeleton } from "@/components/ui";
 import { ProductGrid } from "@/components/catalog/ProductCard";
+import { useCurrency } from "@/components/currency/CurrencySelector";
 
 export default function ProductDetailClient() {
+  const { currency } = useCurrency();
   const params = useParams();
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -18,12 +20,12 @@ export default function ProductDetailClient() {
 
   useEffect(() => {
     fetchProduct();
-  }, [params.id]);
+  }, [params.id, currency]);
 
   const fetchProduct = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/catalog/${params.id}`);
+      const res = await fetch(`/api/catalog/${params.id}?currency=${currency}`);
       const data = await res.json();
       setProduct(data);
     } catch (error) {
