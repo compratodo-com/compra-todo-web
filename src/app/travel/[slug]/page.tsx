@@ -105,7 +105,9 @@ export default async function TravelDetailPage({ params }: Props) {
           </div>
 
           {/* Acción */}
-          <Button size="lg" className="w-full">🧳 Reservar esta experiencia</Button>
+          <Link href={`/travel/${pkg.slug}/book`}>
+            <Button size="lg" className="w-full">🧳 Reservar esta experiencia</Button>
+          </Link>
           <p className="text-xs text-gray-400 text-center mt-2">Reserva simulada — parte de la experiencia Compra-Todo</p>
         </div>
       </div>
