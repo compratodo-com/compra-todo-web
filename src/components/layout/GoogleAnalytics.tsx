@@ -1,12 +1,13 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
 import { useEffect } from "react";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "";
 
-export function GoogleAnalytics() {
+function GAPageTracker() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -22,6 +23,10 @@ export function GoogleAnalytics() {
     });
   }, [pathname, searchParams]);
 
+  return null;
+}
+
+export function GoogleAnalytics() {
   if (!GA_ID) return null;
 
   return (
@@ -40,6 +45,9 @@ export function GoogleAnalytics() {
           });
         `}
       </Script>
+      <Suspense fallback={null}>
+        <GAPageTracker />
+      </Suspense>
     </>
   );
 }
