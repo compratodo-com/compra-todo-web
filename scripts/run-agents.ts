@@ -45,9 +45,10 @@ async function main() {
   } else {
     // Run specific agents in order
     const agentOrder = [
-      "image_hunter",   // 0. Buscar imágenes reales
-      "economist",      // 1. Ajustar monedas
-      "curator",        // 2. Importar productos
+      "image_hunter",       // 0. Buscar imágenes reales
+      "article_generator",  // 1. Generar artículo semanal
+      "economist",          // 2. Ajustar monedas
+      "curator",            // 3. Importar productos
       "trend_hunter",   // 2. Marcar tendencias
       "promoter",       // 3. Generar promociones
       "events_director", // 4. Gestionar eventos

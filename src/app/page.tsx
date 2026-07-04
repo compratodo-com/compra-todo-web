@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 import { ProductGrid } from "@/components/catalog/ProductCard";
+import { ArticleCard, FeaturedArticleCard } from "@/components/articles/ArticleCard";
 import { prisma } from "@/lib/db/prisma";
 import { buildMetadata, SEO_COPIES } from "@/lib/seo";
 
@@ -44,6 +45,23 @@ async function getFeaturedProducts() {
 
 export default async function HomePage() {
   const featuredProducts = await getFeaturedProducts();
+
+  // Obtener artículos publicados
+  const articles = await prisma.article.findMany({
+    where: { publishedAt: { not: null } },
+    orderBy: { publishedAt: "desc" },
+    take: 4,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      excerpt: true,
+      imageUrl: true,
+      category: true,
+      featured: true,
+      publishedAt: true,
+    },
+  });
 
   return (
     <div>
@@ -129,6 +147,46 @@ export default async function HomePage() {
         </div>
         <ProductGrid products={featuredProducts} />
       </section>
+
+      {/* Articles Section */}
+      {articles.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 py-16">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                📖 Magazine
+              </h2>
+              <p className="text-gray-500 mt-1">
+                Estilo de vida, tendencias y bienestar
+              </p>
+            </div>
+            <a
+              href="/articles"
+              className="text-purple-600 hover:text-purple-700 font-medium text-sm"
+            >
+              Ver todos →
+            </a>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+            {articles.map((article, index) => (
+              <ArticleCard
+                key={article.id}
+                article={{
+                  id: article.id,
+                  title: article.title,
+                  slug: article.slug,
+                  excerpt: article.excerpt,
+                  imageUrl: article.imageUrl,
+                  category: article.category,
+                  publishedAt: article.publishedAt?.toISOString() || null,
+                  featured: article.featured,
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* How it works */}
       <section className="bg-white py-16">

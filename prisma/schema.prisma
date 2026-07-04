@@ -408,6 +408,29 @@ model GameEvent {
   @@map("game_events")
 }
 
+// ─── Artículos de Contenido ───
+
+model Article {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  excerpt     String   @db.Text       // breve descripción para tarjetas
+  content     String   @db.Text       // contenido completo
+  imageUrl    String?                  // URL de la imagen destacada
+  category    String   @default("lifestyle") // lifestyle, shopping, wellness, trends
+  tags        String[]                // etiquetas para SEO y filtrado
+  author      String   @default("Compra-Todo")
+  featured    Boolean  @default(false) // si aparece destacado
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([publishedAt])
+  @@index([category])
+  @@index([featured])
+  @@map("articles")
+}
+
 // ─── Agentes ───
 
 model AgentLog {

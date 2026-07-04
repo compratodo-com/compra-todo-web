@@ -3,6 +3,7 @@ import { importTrendingProducts } from "@/lib/agents/product-importer";
 import { generateSyntheticCatalog } from "@/lib/agents/synthetic-catalog";
 import { runEconomist } from "@/lib/agents/economist";
 import { huntProductImages } from "@/lib/agents/image-hunter";
+import { generateArticle } from "@/lib/agents/article-generator";
 import type { AgentResult } from "@/types";
 
 export abstract class BaseAgent {
@@ -51,6 +52,7 @@ export abstract class BaseAgent {
 export async function runAgent(agentName: string): Promise<AgentResult> {
   const agents: Record<string, BaseAgent> = {
     image_hunter: new ImageHunterAgent(),
+    article_generator: new ArticleGeneratorAgent(),
     economist: new EconomistAgent(),
     curator: new CatalogCurator(),
     product_importer: new ProductImporterAgent(),
@@ -546,5 +548,43 @@ class Optimizer extends BaseAgent {
         },
       },
     };
+  }
+}
+
+/**
+ * Article Generator Agent - Crea artículos de estilo de vida semanalmente.
+ */
+class ArticleGeneratorAgent extends BaseAgent {
+  constructor() {
+    super(
+      "article_generator",
+      "0 5 * * 1",
+      "Genera un artículo semanal sobre tendencias, estilo de vida y compras"
+    );
+  }
+
+  async execute(): Promise<AgentResult> {
+    try {
+      const result = await generateArticle();
+      return {
+        agent: this.name,
+        action: "generate_article",
+        status: result.success ? "success" : "warning",
+        details: {
+          title: result.title,
+          slug: result.slug,
+          message: result.success
+            ? "Artículo creado exitosamente"
+            : "El artículo ya existía o no se pudo crear",
+        },
+      };
+    } catch (error) {
+      return {
+        agent: this.name,
+        action: "generate_article",
+        status: "error",
+        details: { error: String(error) },
+      };
+    }
   }
 }
