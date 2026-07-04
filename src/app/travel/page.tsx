@@ -12,21 +12,30 @@ export const metadata: Metadata = buildMetadata({
   path: "/travel",
 });
 
-export default async function TravelPage() {
+export default async function TravelPage(props: { searchParams?: Promise<{ region?: string }> }) {
+  const searchParams = await props.searchParams;
+  const activeRegion = searchParams?.region || null;
+
+  const where: Record<string, unknown> = { isActive: true };
+  if (activeRegion) {
+    where.tags = { has: activeRegion };
+  }
+
   const [promotional, packages] = await Promise.all([
     prisma.travelPackage.findFirst({
-      where: { isActive: true, promotional: true },
+      where: { isActive: true, promotional: true } as any,
       orderBy: { createdAt: "desc" },
     }),
     prisma.travelPackage.findMany({
-      where: { isActive: true },
+      where: where as any,
       orderBy: [{ promotional: "desc" }, { createdAt: "desc" }],
       take: 20,
     }),
   ]);
 
   // Obtener regiones únicas para filtrar
-  const regions = [...new Set(packages.flatMap(p => p.tags.filter(t => ["Sudamérica", "Caribe", "Norteamérica", "Europa", "Patagonia", "Asia", "Oriente Medio"].includes(t))))];
+  const allPackages = await prisma.travelPackage.findMany({ where: { isActive: true }, select: { tags: true } });
+  const regions = [...new Set(allPackages.flatMap(p => p.tags.filter(t => ["Sudamérica", "Caribe", "Norteamérica", "Europa", "Patagonia", "Asia", "Oriente Medio"].includes(t))))];
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -47,11 +56,11 @@ export default async function TravelPage() {
       {/* Filtros de región */}
       {regions.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-4 mb-8">
-          <a href="/travel" className="px-4 py-2 rounded-full text-sm font-medium bg-purple-600 text-white whitespace-nowrap">
+          <a href="/travel" className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${!activeRegion ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
             Todos
           </a>
           {regions.map(r => (
-            <a key={r} href={`/travel?region=${r}`} className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 whitespace-nowrap">
+            <a key={r} href={`/travel?region=${encodeURIComponent(r)}`} className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${activeRegion === r ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
               {r}
             </a>
           ))}
