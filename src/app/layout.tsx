@@ -5,6 +5,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { CurrencyProvider } from "@/components/currency/CurrencySelector";
 import { Providers } from "@/components/layout/Providers";
+import { GoogleAnalytics } from "@/components/layout/GoogleAnalytics";
 import { SITE_CONFIG, buildMetadata } from "@/lib/seo";
 
 const geistSans = Geist({
@@ -56,6 +57,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 min-h-screen flex flex-col`}
       >
+        <GoogleAnalytics />
         <Providers>
           <CurrencyProvider>
             <Navbar />

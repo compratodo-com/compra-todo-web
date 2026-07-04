@@ -8,6 +8,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Button, Badge, Skeleton } from "@/components/ui";
 import { ProductGrid } from "@/components/catalog/ProductCard";
 import { useCurrency } from "@/components/currency/CurrencySelector";
+import { Events } from "@/lib/analytics-events";
 
 export default function ProductDetailClient() {
   const { currency } = useCurrency();
@@ -51,6 +52,7 @@ export default function ProductDetailClient() {
     }
     localStorage.setItem("cart", JSON.stringify(cart));
     window.dispatchEvent(new Event("cartUpdated"));
+    Events.addToCart(product.title, product.price);
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 3000);
   };
