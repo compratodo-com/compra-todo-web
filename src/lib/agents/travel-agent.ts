@@ -109,12 +109,36 @@ export async function generateTravelPackages(count = 5): Promise<number> {
       `Todo listo para que solo te preocupes de disfrutar: ${includes.slice(0, 3).join(", ")}.`,
     ])} Precio por persona, impuestos incluidos.`; // Precio referencial del mercado turístico.
 
-    // Buscar imagen en Pexels
+    // Buscar imagen en Pexels con términos específicos del destino
     let images: string[] = [];
     if (process.env.PEXELS_API_KEY) {
       try {
         const { searchProductImages } = await import("@/lib/images/pexels");
-        const pexelImages = await searchProductImages(`${dest.city} travel destination`, 5);
+        // Términos de búsqueda específicos por destino para obtener imágenes reales del lugar
+        const searchTerms: Record<string, string> = {
+          "Cancún": "Cancun Mexico beach resort",
+          "Río de Janeiro": "Rio de Janeiro Brazil landmark",
+          "Cusco": "Cusco Peru Machu Picchu",
+          "Punta Cana": "Punta Cana Dominican Republic beach",
+          "Buenos Aires": "Buenos Aires Argentina city",
+          "Madrid": "Madrid Spain city landmark",
+          "Orlando": "Orlando Florida theme park",
+          "París": "Paris France Eiffel Tower",
+          "Cartagena": "Cartagena Colombia colonial",
+          "Miami": "Miami Florida beach skyline",
+          "Barcelona": "Barcelona Spain architecture",
+          "San Pedro de Atacama": "Atacama Desert Chile",
+          "Torres del Paine": "Torres del Paine Patagonia",
+          "Lima": "Lima Peru city",
+          "La Habana": "Havana Cuba vintage",
+          "Tokio": "Tokyo Japan city",
+          "Dubai": "Dubai city skyline",
+          "Bariloche": "Bariloche Argentina lake",
+          "Florianópolis": "Florianopolis Brazil beach",
+          "Nueva York": "New York City skyline Manhattan",
+        };
+        const query = searchTerms[dest.city] || `${dest.city} travel destination landmark`;
+        const pexelImages = await searchProductImages(query, 8);
         if (pexelImages.length > 0) images = pexelImages;
       } catch {}
     }

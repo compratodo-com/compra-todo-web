@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui";
 import { ProductGrid } from "@/components/catalog/ProductCard";
 import { ArticleCard, FeaturedArticleCard } from "@/components/articles/ArticleCard";
+import { TravelCard } from "@/components/travel/TravelCard";
 import { prisma } from "@/lib/db/prisma";
 import { buildMetadata, SEO_COPIES } from "@/lib/seo";
 
@@ -45,6 +46,13 @@ async function getFeaturedProducts() {
 
 export default async function HomePage() {
   const featuredProducts = await getFeaturedProducts();
+
+  // Obtener paquetes de viaje destacados
+  const travelPackages = await prisma.travelPackage.findMany({
+    where: { isActive: true },
+    orderBy: [{ promotional: "desc" }, { createdAt: "desc" }],
+    take: 4,
+  });
 
   // Obtener artículos publicados
   const articles = await prisma.article.findMany({
@@ -147,6 +155,48 @@ export default async function HomePage() {
         </div>
         <ProductGrid products={featuredProducts} />
       </section>
+
+      {/* Travel Section */}
+      {travelPackages.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 py-16">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                🧳 Viajes y destinos
+              </h2>
+              <p className="text-gray-500 mt-1">
+                Los mejores paquetes para latinoamericanos
+              </p>
+            </div>
+            <a href="/travel" className="text-purple-600 hover:text-purple-700 font-medium text-sm">
+              Ver todos →
+            </a>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+            {travelPackages.map((pkg) => (
+              <TravelCard
+                key={pkg.id}
+                pkg={{
+                  id: pkg.id,
+                  title: pkg.title,
+                  slug: pkg.slug,
+                  destination: pkg.destination,
+                  price: pkg.price,
+                  originalPrice: pkg.originalPrice,
+                  thumbnail: pkg.thumbnail,
+                  images: pkg.images,
+                  duration: pkg.duration,
+                  includes: pkg.includes,
+                  rating: pkg.rating,
+                  tags: pkg.tags,
+                  promotional: pkg.promotional,
+                  discountPct: pkg.discountPct,
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Articles Section */}
       {articles.length > 0 && (

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import { TravelCard } from "@/components/travel/TravelCard";
+import { PromoBanner } from "@/components/travel/PromoBanner";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
@@ -56,6 +57,11 @@ export default async function TravelPage() {
           ))}
         </div>
       )}
+
+      {/* Banner promocional */}
+      <div className="mb-10">
+        <PromoBanner />
+      </div>
 
       {/* Paquete destacado */}
       {promotional && (
