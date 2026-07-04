@@ -124,13 +124,23 @@ La clave está en encontrar aquello que se adapta a tu estilo de vida. No se tra
 Explora nuestras recomendaciones y descubre por qué cada vez más personas eligen Compra-Todo como su plataforma de compras favorita. La mejor experiencia de compra comienza aquí.`;
   }
 
-  // 3. Buscar imagen en Pexels
+  // 3. Buscar imagen en Pexels (única por artículo)
   let imageUrl: string | null = null;
   if (process.env.PEXELS_API_KEY) {
     try {
       const { searchProductImages } = await import("@/lib/images/pexels");
-      const pexelImages = await searchProductImages(category === "wellness" ? "wellness lifestyle" : category === "trends" ? "trends fashion" : category === "shopping" ? "shopping lifestyle" : "lifestyle home", 5);
-      if (pexelImages.length > 0) imageUrl = pexelImages[0];
+      const queryMap: Record<string, string> = {
+        lifestyle: "lifestyle home decoration",
+        shopping: "shopping retail store",
+        wellness: "wellness spa relax",
+        trends: "trends fashion style",
+      };
+      const query = queryMap[category] || "lifestyle product";
+      const pexelImages = await searchProductImages(query, 10);
+      // Usar el hash del título para elegir una imagen diferente siempre
+      const hash = title.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+      const imgIndex = hash % Math.max(pexelImages.length, 1);
+      if (pexelImages.length > 0) imageUrl = pexelImages[imgIndex];
     } catch {}
   }
 
