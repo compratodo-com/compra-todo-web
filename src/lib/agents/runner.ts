@@ -146,10 +146,16 @@ class CatalogCurator extends BaseAgent {
       const totalImported = result.imported + risingResult.imported;
       const totalUpdated = result.updated + risingResult.updated;
 
+      // Si ML no trajo nada, caer a sintético
+      if (totalImported === 0) {
+        console.log("[Curator] ML returned 0 products, falling back to synthetic");
+        return this.executeSyntheticGeneration();
+      }
+
       return {
         agent: this.name,
         action: "sync_catalog_ml",
-        status: totalImported > 0 ? "success" : totalUpdated > 0 ? "success" : "warning",
+        status: totalUpdated > 0 ? "success" : "warning",
         details: {
           imported: totalImported,
           updated: totalUpdated,
