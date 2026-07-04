@@ -74,7 +74,7 @@ export default function CartPage() {
       ) : (
         <div className="grid md:grid-cols-3 gap-8">
           {/* Items */}
-          <div className="md:col-span-2 space-y-4">
+          <div className="md:col-span-2 space-y-3">
             {items.map((item) => (
               <Card key={item.productId} className="p-4">
                 <div className="flex gap-4">
@@ -99,23 +99,23 @@ export default function CartPage() {
                       <div className="flex items-center border border-gray-300 rounded-lg text-sm">
                         <button
                           onClick={() => updateQuantity(item.productId, -1)}
-                          className="px-2 py-1 hover:bg-gray-50"
+                          className="px-3 py-1.5 hover:bg-gray-50 min-w-[32px]"
                         >
                           -
                         </button>
-                        <span className="px-3 py-1 font-medium">
+                        <span className="px-4 py-1.5 font-medium min-w-[32px] text-center">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() => updateQuantity(item.productId, 1)}
-                          className="px-2 py-1 hover:bg-gray-50"
+                          className="px-3 py-1.5 hover:bg-gray-50 min-w-[32px]"
                         >
                           +
                         </button>
                       </div>
                       <button
                         onClick={() => removeItem(item.productId)}
-                        className="text-sm text-red-500 hover:text-red-600"
+                        className="text-sm text-red-500 hover:text-red-600 py-1.5 px-2"
                       >
                         Eliminar
                       </button>

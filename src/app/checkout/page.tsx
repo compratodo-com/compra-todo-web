@@ -104,12 +104,11 @@ function CheckoutContent() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Progress bar */}
-      <div className="flex items-center justify-center gap-2 mb-8 text-sm">
+      <div className="flex items-center justify-center gap-1 sm:gap-2 mb-6 sm:mb-8 text-xs sm:text-sm overflow-x-auto pb-2">
         {["review", "shipping", "coupons", "spin"].map((s, i) => (
-          <div key={s} className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+          <div key={s} className="flex items-center gap-1 sm:gap-2">
+            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
               step === s ? "bg-purple-600 text-white" : 
-              ["done"].includes(step) && ["review", "shipping", "coupons", "spin"].indexOf(s) <= ["review", "shipping", "coupons", "spin"].indexOf(step) ? "bg-green-500 text-white" :
               "bg-gray-200 text-gray-500"
             }`}>
               {i + 1}
@@ -199,7 +198,7 @@ function CheckoutContent() {
                 }`}
               >
                 <div className="flex items-center gap-4">
-                  <span className="text-3xl">{method.icon}</span>
+                  <span className="text-2xl sm:text-3xl">{method.icon}</span>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-gray-900">{method.name}</p>

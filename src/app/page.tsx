@@ -49,33 +49,33 @@ export default async function HomePage() {
     <div>
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-purple-700 via-purple-600 to-indigo-800 text-white">
-        <div className="max-w-7xl mx-auto px-4 py-20">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+        <div className="max-w-7xl mx-auto px-4 py-12 md:py-20">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-sm mb-6">
+              <div className="inline-flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-sm mb-4 md:mb-6">
                 <span>✨</span>
                 <span>Nueva experiencia de compra</span>
               </div>
-              <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-4">
+              <h1 className="text-3xl md:text-6xl font-bold leading-tight mb-3 md:mb-4">
                 {SEO_COPIES.heroTitle}
               </h1>
-              <p className="text-lg text-purple-100 mb-8 leading-relaxed">
+              <p className="text-base md:text-lg text-purple-100 mb-6 md:mb-8 leading-relaxed">
                 {SEO_COPIES.heroSubtitle}
               </p>
-              <div className="flex flex-wrap gap-4">
-                <Link href="/catalog">
+              <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
+                <Link href="/catalog" className="flex-1 md:flex-none">
                   <Button
                     size="lg"
-                    className="bg-yellow-400 text-purple-900 hover:bg-yellow-300 font-bold text-lg"
+                    className="w-full md:w-auto bg-yellow-400 text-purple-900 hover:bg-yellow-300 font-bold text-base md:text-lg"
                   >
                     🛍️ {SEO_COPIES.heroCTA}
                   </Button>
                 </Link>
-                <Link href="/auth/register">
+                <Link href="/auth/register" className="flex-1 md:flex-none">
                   <Button
                     variant="outline"
                     size="lg"
-                    className="border-white text-white hover:bg-white/20"
+                    className="w-full md:w-auto border-white text-white hover:bg-white/20 text-base md:text-lg"
                   >
                     Crear cuenta gratis
                   </Button>
