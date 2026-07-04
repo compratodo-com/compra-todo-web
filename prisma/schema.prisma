@@ -408,6 +408,35 @@ model GameEvent {
   @@map("game_events")
 }
 
+// ─── Paquetes de Viaje ───
+
+model TravelPackage {
+  id            String   @id @default(cuid())
+  title         String
+  slug          String   @unique
+  destination   String   // país o ciudad
+  description   String   @db.Text
+  price         Float    // precio en CLP
+  originalPrice Float?   // precio original (para mostrar descuento)
+  currency      String   @default("CLP")
+  images        String[] // URLs de imágenes
+  thumbnail     String?
+  duration      String   // "7 días", "5 noches"
+  includes      String[] // ["Vuelo", "Hotel", "Desayuno"]
+  rating        Float?   // 1-5
+  tags          String[] // ["playa", "aventura", "romántico"]
+  promotional   Boolean  @default(false) // oferta especial
+  discountPct   Int?     // descuento porcentual
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([destination])
+  @@index([promotional])
+  @@map("travel_packages")
+}
+
 // ─── Artículos de Contenido ───
 
 model Article {

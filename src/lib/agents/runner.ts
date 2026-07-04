@@ -4,6 +4,7 @@ import { generateSyntheticCatalog } from "@/lib/agents/synthetic-catalog";
 import { runEconomist } from "@/lib/agents/economist";
 import { huntProductImages } from "@/lib/agents/image-hunter";
 import { generateArticle } from "@/lib/agents/article-generator";
+import { generateTravelPackages } from "@/lib/agents/travel-agent";
 import type { AgentResult } from "@/types";
 
 export abstract class BaseAgent {
@@ -51,6 +52,7 @@ export abstract class BaseAgent {
 // Agent Runner - executes all agents
 export async function runAgent(agentName: string): Promise<AgentResult> {
   const agents: Record<string, BaseAgent> = {
+    travel_agent: new TravelAgent(),
     image_hunter: new ImageHunterAgent(),
     article_generator: new ArticleGeneratorAgent(),
     economist: new EconomistAgent(),
@@ -548,6 +550,38 @@ class Optimizer extends BaseAgent {
         },
       },
     };
+  }
+}
+
+/**
+ * Travel Agent - Genera paquetes de viaje atractivos semanalmente.
+ */
+class TravelAgent extends BaseAgent {
+  constructor() {
+    super(
+      "travel_agent",
+      "0 4 * * 3",
+      "Genera paquetes turísticos atractivos para Latinoamérica"
+    );
+  }
+
+  async execute(): Promise<AgentResult> {
+    try {
+      const count = await generateTravelPackages(3);
+      return {
+        agent: this.name,
+        action: "generate_travel_packages",
+        status: count > 0 ? "success" : "warning",
+        details: { created: count },
+      };
+    } catch (error) {
+      return {
+        agent: this.name,
+        action: "generate_travel_packages",
+        status: "error",
+        details: { error: String(error) },
+      };
+    }
   }
 }
 

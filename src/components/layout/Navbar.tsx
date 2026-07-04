@@ -31,6 +31,7 @@ export function Navbar() {
   const links = [
     { href: "/catalog", label: "Catálogo" },
     { href: "/promotions", label: "Ofertas" },
+    { href: "/travel", label: "Viajes" },
     { href: "/articles", label: "Magazine" },
     { href: "/game", label: "Juego" },
   ];
