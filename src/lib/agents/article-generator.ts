@@ -124,6 +124,16 @@ La clave está en encontrar aquello que se adapta a tu estilo de vida. No se tra
 Explora nuestras recomendaciones y descubre por qué cada vez más personas eligen Compra-Todo como su plataforma de compras favorita. La mejor experiencia de compra comienza aquí.`;
   }
 
+  // 3. Buscar imagen en Pexels
+  let imageUrl: string | null = null;
+  if (process.env.PEXELS_API_KEY) {
+    try {
+      const { searchProductImages } = await import("@/lib/images/pexels");
+      const pexelImages = await searchProductImages(category === "wellness" ? "wellness lifestyle" : category === "trends" ? "trends fashion" : category === "shopping" ? "shopping lifestyle" : "lifestyle home", 5);
+      if (pexelImages.length > 0) imageUrl = pexelImages[0];
+    } catch {}
+  }
+
   const slug = slugify(title);
 
   // Guardar artículo
@@ -133,6 +143,7 @@ Explora nuestras recomendaciones y descubre por qué cada vez más personas elig
       slug,
       excerpt: excerpt || `Descubre todo sobre ${topic.toLowerCase()} en Compra-Todo Magazine.`,
       content: content || topic,
+      imageUrl,
       category,
       tags: [category, "tendencias", "estilo de vida"],
       featured: false,
