@@ -101,8 +101,15 @@ export async function generateTravelPackages(count = 5): Promise<number> {
     const title = `${pickRandom(["Viaje a", "Escápate a", "Descubre", "Aventura en", "Vacaciones en"])} ${dest.city}, ${dest.country}`;
 
     const slug = slugify(title);
-    const existing = await prisma.travelPackage.findUnique({ where: { slug } });
-    if (existing) continue;
+    
+    // Evitar duplicados: ni mismo slug ni mismo destino
+    const existing = await prisma.travelPackage.findFirst({
+      where: { OR: [{ slug }, { destination: { startsWith: dest.city } }] },
+    });
+    if (existing) {
+      console.log(`   ⏭️ Ya existe: ${dest.city}`);
+      continue;
+    }
 
     // Descripción
     const description = `Disfruta de unas vacaciones inolvidables en ${dest.city}. ${accommodation} de primera clase durante ${duration.label.toLowerCase()}. ${pickRandom([
@@ -143,9 +150,10 @@ export async function generateTravelPackages(count = 5): Promise<number> {
       }
     } catch {}
     
-    // Completar con fotos de picsum (diferentes semillas = diferentes fotos reales)
+    // Completar con fotos de picsum (semillas únicas para cada paquete)
+    const uniqueSuffix = Date.now().toString(36);
     for (let i = 0; i < 4; i++) {
-      images.push(`https://picsum.photos/seed/${seed}${i}/800/600`);
+      images.push(`https://picsum.photos/seed/${seed}${uniqueSuffix}${i}/800/600`);
     }
     
     images = images.slice(0, 5);
