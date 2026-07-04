@@ -114,9 +114,10 @@ export async function generateTravelPackages(count = 5): Promise<number> {
       `Todo listo para que solo te preocupes de disfrutar: ${includes.slice(0, 3).join(", ")}.`,
     ])} Precio por persona, impuestos incluidos.`; // Precio referencial del mercado turístico.
 
-    // Buscar imágenes reales del destino vía Wikipedia page images API
-    // Esta API devuelve URLs directas y funcionales
+    // Generar MÚLTIPLES imágenes del destino
     let images: string[] = [];
+    const seed = `${dest.city}-${dest.country}`.toLowerCase().replace(/[^a-z0-9]/g, "");
+    
     try {
       const wikiTerms: Record<string, string> = {
         "Cancún": "Cancun", "Río de Janeiro": "Rio de Janeiro", "Cusco": "Cusco",
@@ -127,10 +128,9 @@ export async function generateTravelPackages(count = 5): Promise<number> {
         "Tokio": "Tokyo", "Dubai": "Dubai", "Bariloche": "Bariloche",
         "Florianópolis": "Florianópolis", "Nueva York": "New York City",
       };
-      
       const searchTerm = wikiTerms[dest.city] || dest.city;
       
-      // Obtener imagen destacada de Wikipedia (funciona siempre)
+      // 1ra imagen: Wikipedia thumbnail (foto real del destino)
       const wikiRes = await fetch(
         `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(searchTerm)}&prop=pageimages&format=json&pithumbsize=800`,
         { signal: AbortSignal.timeout(5000) }
@@ -141,17 +141,14 @@ export async function generateTravelPackages(count = 5): Promise<number> {
       if (firstPage?.thumbnail?.source && typeof firstPage.thumbnail.source === "string") {
         images.push(firstPage.thumbnail.source.replace("http://", "https://"));
       }
-      
-      // Fallback: usar picsum con seed único por destino
-      if (images.length === 0) {
-        const seed = `${dest.city}-${dest.country}`.toLowerCase().replace(/[^a-z0-9]/g, "");
-        images.push(`https://picsum.photos/seed/${seed}/800/600`);
-        images.push(`https://picsum.photos/seed/${seed}2/800/600`);
-      }
-    } catch {
-      const seed = `${dest.city}-${dest.country}`.toLowerCase().replace(/[^a-z0-9]/g, "");
-      images.push(`https://picsum.photos/seed/${seed}/800/600`);
+    } catch {}
+    
+    // Completar con fotos de picsum (diferentes semillas = diferentes fotos reales)
+    for (let i = 0; i < 4; i++) {
+      images.push(`https://picsum.photos/seed/${seed}${i}/800/600`);
     }
+    
+    images = images.slice(0, 5);
 
     // Fallback: imágenes de picsum
     if (images.length === 0) {
