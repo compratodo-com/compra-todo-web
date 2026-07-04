@@ -67,7 +67,12 @@ const PROMOTIONAL_TAGS = [
 ];
 
 function slugify(text: string): string {
-  return text.toLowerCase().replace(/[^a-z0-9áéíóúñü\s]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").slice(0, 80);
+  return text
+    .toLowerCase()
+    .replace(/[áäà]/g, "a").replace(/[éëè]/g, "e").replace(/[íïì]/g, "i")
+    .replace(/[óöò]/g, "o").replace(/[úüù]/g, "u").replace(/[ñ]/g, "n")
+    .replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "")
+    .slice(0, 80);
 }
 
 function pickRandom<T>(arr: T[]): T {
