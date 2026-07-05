@@ -42,6 +42,11 @@ export function Footer() {
                   Ranking
                 </a>
               </li>
+              <li>
+                <a href="/media-kit" className="hover:text-white transition-colors">
+                  📊 Media Kit
+                </a>
+              </li>
             </ul>
           </div>
 

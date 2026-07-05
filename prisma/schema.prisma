@@ -437,6 +437,35 @@ model TravelPackage {
   @@map("travel_packages")
 }
 
+// ─── Publicidad ───
+
+model Advertisement {
+  id          String   @id @default(cuid())
+  name        String                // Nombre interno de la campaña
+  advertiser  String                // Nombre del anunciante
+  type        String   @default("banner") // banner, sidebar, leaderboard, sponsored, email
+  imageUrl    String                // URL de la imagen del anuncio
+  linkUrl     String                // URL de destino
+  altText     String?               // Texto alternativo
+  width       Int      @default(728)
+  height      Int      @default(90)
+  startsAt    DateTime              // Inicio de campaña
+  endsAt      DateTime              // Fin de campaña
+  maxClicks   Int?                  // Máximo de clicks (opcional)
+  currentClicks Int    @default(0)
+  maxImpressions Int?               // Máximo de impresiones (opcional)
+  currentImpressions Int @default(0)
+  price       Float                 // Precio de la campaña
+  isActive    Boolean  @default(true)
+  pages       String[]              // Páginas donde aparece: ["home", "catalog", "travel", "*"]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, startsAt, endsAt])
+  @@index([type])
+  @@map("advertisements")
+}
+
 // ─── Artículos de Contenido ───
 
 model Article {
