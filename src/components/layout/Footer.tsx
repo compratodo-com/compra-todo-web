@@ -71,7 +71,12 @@ export function Footer() {
               </li>
               <li>
                 <a href="/faq" className="hover:text-white transition-colors">
-                  FAQ / ¿Es real?
+                  FAQ
+                </a>
+              </li>
+              <li>
+                <a href="/contact" className="hover:text-white transition-colors">
+                  Contacto
                 </a>
               </li>
             </ul>
