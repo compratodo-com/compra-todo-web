@@ -500,12 +500,14 @@ class ImageHunterAgent extends BaseAgent {
         status: "success",
         details: {
           total: result.total,
+          candidates: result.candidates,
           processed: result.processed,
           updated: result.updated,
           skipped: result.skipped,
           errors: result.errors,
           dryRun: result.dryRun,
           changes: result.changes,
+          trace: result.trace,
         },
       };
     } catch (error) {

@@ -85,6 +85,7 @@ export async function huntProductImagesPro(opts: HuntOptions = {}): Promise<{
   errors: number;
   dryRun: boolean;
   changes: ImageChange[];
+  trace: Record<string, unknown>[];
 }> {
   const { maxProducts = 20, force = false, minScore = 0.6, dryRun = false, offset = 0 } = opts;
   console.log(`[ImageHunterPro] 🎯 Verificando imágenes con Groq Vision${dryRun ? " (DRY-RUN, sin escribir)" : ""}...\n`);
@@ -103,6 +104,12 @@ export async function huntProductImagesPro(opts: HuntOptions = {}): Promise<{
   let skipped = 0;
   let errors = 0;
   const changes: ImageChange[] = [];
+  const trace: Record<string, unknown>[] = [];
+
+  const hostOf = (u: string | null) => {
+    if (!u) return "(sin imagen)";
+    try { return new URL(u).hostname; } catch { return "(url inválida)"; }
+  };
 
   for (let i = 0; i < targets.length; i++) {
     const p = targets[i];
@@ -120,6 +127,17 @@ export async function huntProductImagesPro(opts: HuntOptions = {}): Promise<{
         minScore,
         incumbentUrl: p.thumbnail,
       });
+
+      if (dryRun) {
+        trace.push({
+          title: p.title.slice(0, 40),
+          incumbente: hostOf(p.thumbnail),
+          candidatosScrapeados: scraped.length,
+          fuentes: [...new Set(scraped.map((s) => hostOf(s.url)))].slice(0, 4),
+          decision: !best ? "sin-reemplazo" : best.url === p.thumbnail ? "conserva" : "cambiaria",
+          score: best?.score ?? null,
+        });
+      }
 
       if (!best) {
         skipped++;
@@ -174,6 +192,7 @@ export async function huntProductImagesPro(opts: HuntOptions = {}): Promise<{
     errors,
     dryRun,
     changes,
+    trace,
   };
 }
 
