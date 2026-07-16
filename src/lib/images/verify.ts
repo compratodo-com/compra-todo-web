@@ -63,10 +63,42 @@ export function filterCandidates(candidates: ImageCandidate[]): ImageCandidate[]
 
 const GROQ_BASE = "https://api.groq.com/openai/v1";
 const GROQ_VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8MB
+
+/** Marca un fallo al DESCARGAR la imagen (distinto de "Groq no disponible"). */
+export class ImageFetchError extends Error {}
+
+/**
+ * Descarga la imagen nosotros mismos (siguiendo redirects, con UA de navegador)
+ * y la devuelve como data URL base64. Así evitamos que el fetcher de Groq falle
+ * por redirects/hotlink. Retorna null si no se pudo bajar.
+ */
+async function fetchImageAsDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      redirect: "follow",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "image/avif,image/webp,image/*,*/*;q=0.8",
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const ct = (res.headers.get("content-type") || "").split(";")[0];
+    if (!ct.startsWith("image/")) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length === 0 || buf.length > MAX_IMAGE_BYTES) return null;
+    return `data:${ct};base64,${buf.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Puntúa con Groq Vision qué tan bien la imagen representa al producto.
- * Retorna 0..1, o -1 si Groq no está disponible / falló la llamada.
+ * Retorna 0..1. Devuelve -1 si Groq no está disponible (sin API key).
+ * Lanza ImageFetchError si no se pudo descargar la imagen (candidato a saltar).
  */
 export async function scoreImageWithGroq(
   imageUrl: string,
@@ -75,6 +107,9 @@ export async function scoreImageWithGroq(
 ): Promise<number> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return -1;
+
+  const dataUrl = await fetchImageAsDataUrl(imageUrl);
+  if (!dataUrl) throw new ImageFetchError("no se pudo descargar la imagen");
 
   const OpenAI = (await import("openai")).default;
   const groq = new OpenAI({ apiKey, baseURL: GROQ_BASE });
@@ -99,7 +134,7 @@ Mira la imagen y responde SOLO con un número del 0.0 al 1.0:
 0.0 = banner, logo, texto, foto genérica o no corresponde
 Responde solo el número, sin explicación.`,
           },
-          { type: "image_url", image_url: { url: imageUrl } },
+          { type: "image_url", image_url: { url: dataUrl } },
         ],
       },
     ],
@@ -148,8 +183,8 @@ export async function pickBestVerifiedImage(
 ): Promise<ImageCandidate | null> {
   const {
     minScore = 0.6,
-    maxChecks = 4,
-    delayMs = 300,
+    maxChecks = 3,
+    delayMs = 200,
     incumbentUrl = null,
     replaceMargin = 0.2,
   } = opts;
@@ -168,21 +203,24 @@ export async function pickBestVerifiedImage(
     ? [...filtered].sort((a, b) => (a.url === incumbentUrl ? -1 : b.url === incumbentUrl ? 1 : 0))
     : filtered;
 
+  // Puntuar hasta `maxChecks` candidatos válidos. Toleramos que algunos no se
+  // puedan descargar (se saltan) probando más abajo en la lista, con un tope de
+  // intentos para acotar el tiempo.
   const scored: ImageCandidate[] = [];
-  for (let i = 0; i < Math.min(ordered.length, maxChecks); i++) {
+  const maxAttempts = Math.min(ordered.length, maxChecks * 3);
+  for (let i = 0; i < maxAttempts && scored.length < maxChecks; i++) {
     const c = ordered[i];
     let score: number;
     try {
       score = await scoreImageWithGroq(c.url, productTitle, brand);
     } catch (err: any) {
-      if (err?.status === 429) break; // rate limit: cortar
-      continue;
+      if (err?.status === 429) break; // rate limit de Groq: cortar
+      continue; // no se pudo descargar este candidato: probar el siguiente
     }
-    if (score < 0) break; // Groq dejó de estar disponible
+    if (score < 0) break; // Groq no disponible (sin API key)
     scored.push({ ...c, score });
-    if (delayMs > 0 && i < maxChecks - 1) {
-      await new Promise((r) => setTimeout(r, delayMs));
-    }
+    if (score >= 0.9) break; // candidato claramente correcto: no seguir gastando
+    if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
   }
 
   // El titular pasó las heurísticas (no es banner/stock).
