@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db/prisma";
 import { importTrendingProducts } from "@/lib/agents/product-importer";
 import { generateSyntheticCatalog } from "@/lib/agents/synthetic-catalog";
 import { runEconomist } from "@/lib/agents/economist";
-import { huntProductImages } from "@/lib/agents/image-hunter";
+import { huntProductImagesPro } from "@/lib/agents/image-hunter-pro";
 import { generateArticle } from "@/lib/agents/article-generator";
 import { generateTravelPackages } from "@/lib/agents/travel-agent";
 import type { AgentResult } from "@/types";
@@ -50,7 +50,10 @@ export abstract class BaseAgent {
 }
 
 // Agent Runner - executes all agents
-export async function runAgent(agentName: string): Promise<AgentResult> {
+export async function runAgent(
+  agentName: string,
+  opts?: Record<string, unknown>
+): Promise<AgentResult> {
   const agents: Record<string, BaseAgent> = {
     travel_agent: new TravelAgent(),
     image_hunter: new ImageHunterAgent(),
@@ -75,12 +78,16 @@ export async function runAgent(agentName: string): Promise<AgentResult> {
     };
   }
 
+  if (opts && agent instanceof ImageHunterAgent) {
+    agent.opts = opts;
+  }
+
   return agent.run();
 }
 
 export async function runAllAgents(): Promise<AgentResult[]> {
   const results: AgentResult[] = [];
-  const agentNames = ["curator", "trend_hunter", "promoter", "events_director", "mail_carrier", "optimizer"];
+  const agentNames = ["curator", "image_hunter", "trend_hunter", "promoter", "events_director", "mail_carrier", "optimizer"];
 
   for (const name of agentNames) {
     try {
@@ -474,27 +481,31 @@ class MailCarrier extends BaseAgent {
  * Cada 24h recorre los productos buscando mejorar sus imágenes.
  */
 class ImageHunterAgent extends BaseAgent {
+  opts: Record<string, unknown> = {};
+
   constructor() {
     super(
       "image_hunter",
       "0 4 * * *",
-      "Busca imágenes reales de productos en Google Images y Paris.cl"
+      "Verifica imágenes con Groq Vision y reemplaza las que no calzan"
     );
   }
 
   async execute(): Promise<AgentResult> {
     try {
-      const result = await huntProductImages();
+      const result = await huntProductImagesPro({ maxProducts: 20, ...this.opts });
       return {
         agent: this.name,
-        action: "hunt_images",
+        action: result.dryRun ? "hunt_images_dryrun" : "hunt_images",
         status: "success",
         details: {
           total: result.total,
+          processed: result.processed,
           updated: result.updated,
-          fromParis: result.fromParis,
-          fromGoogle: result.fromGoogle,
+          skipped: result.skipped,
           errors: result.errors,
+          dryRun: result.dryRun,
+          changes: result.changes,
         },
       };
     } catch (error) {

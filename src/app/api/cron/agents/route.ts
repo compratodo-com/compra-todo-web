@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 
 // GET /api/cron/agents?key=SECRET&agent=curator
+// Extra para image_hunter:
+//   &dry=1   → simula sin escribir en la base (devuelve los cambios propuestos)
+//   &max=N   → tope de productos a procesar en la corrida
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const key = searchParams.get("key");
     const agent = searchParams.get("agent") || "all";
+    const dry = searchParams.get("dry") === "1";
+    const maxParam = searchParams.get("max");
 
     // Validar clave secreta
     if (key !== process.env.CRON_SECRET) {
@@ -18,7 +23,10 @@ export async function GET(req: Request) {
     if (agent === "all") {
       results = await runAllAgents();
     } else {
-      results = await runAgent(agent);
+      const opts: Record<string, unknown> = {};
+      if (dry) opts.dryRun = true;
+      if (maxParam && !isNaN(Number(maxParam))) opts.maxProducts = Number(maxParam);
+      results = await runAgent(agent, Object.keys(opts).length ? opts : undefined);
     }
 
     return NextResponse.json({ success: true, results });
