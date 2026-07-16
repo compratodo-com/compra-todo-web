@@ -53,6 +53,8 @@ interface HuntOptions {
   minScore?: number;
   /** Simula sin escribir en la base: solo reporta qué cambiaría. */
   dryRun?: boolean;
+  /** Desde qué posición de la lista de candidatos empezar (para paginar). */
+  offset?: number;
 }
 
 /** Un producto necesita mejor imagen si no tiene, o si su fuente no es confiable. */
@@ -76,6 +78,7 @@ interface ImageChange {
 
 export async function huntProductImagesPro(opts: HuntOptions = {}): Promise<{
   total: number;
+  candidates: number;
   processed: number;
   updated: number;
   skipped: number;
@@ -83,16 +86,18 @@ export async function huntProductImagesPro(opts: HuntOptions = {}): Promise<{
   dryRun: boolean;
   changes: ImageChange[];
 }> {
-  const { maxProducts = 20, force = false, minScore = 0.6, dryRun = false } = opts;
+  const { maxProducts = 20, force = false, minScore = 0.6, dryRun = false, offset = 0 } = opts;
   console.log(`[ImageHunterPro] 🎯 Verificando imágenes con Groq Vision${dryRun ? " (DRY-RUN, sin escribir)" : ""}...\n`);
 
+  // Orden estable para que `offset` sea consistente entre llamadas.
   const products = await prisma.product.findMany({
     where: { isActive: true },
     select: { id: true, title: true, brand: true, thumbnail: true },
+    orderBy: { createdAt: "asc" },
   });
 
-  const targets = (force ? products : products.filter((p) => needsBetterImage(p.thumbnail)))
-    .slice(0, maxProducts);
+  const candidates = force ? products : products.filter((p) => needsBetterImage(p.thumbnail));
+  const targets = candidates.slice(offset, offset + maxProducts);
 
   let updated = 0;
   let skipped = 0;
@@ -154,13 +159,15 @@ export async function huntProductImagesPro(opts: HuntOptions = {}): Promise<{
   }
 
   console.log(`\n[ImageHunterPro] 📊 Resumen:
-   Candidatos a revisar: ${targets.length} de ${products.length}
+   Candidatos (necesitan revisión): ${candidates.length} de ${products.length}
+   Procesados esta tanda: ${targets.length} (desde offset ${offset})
    Actualizados: ${updated}
    Conservados/sin cambio: ${skipped}
    Errores: ${errors}`);
 
   return {
     total: products.length,
+    candidates: candidates.length,
     processed: targets.length,
     updated,
     skipped,
