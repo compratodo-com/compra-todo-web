@@ -92,6 +92,7 @@ export default async function ProductDetailPage({ params }: Props) {
         title: p.title,
         price: r.price,
         originalPrice: r.originalPrice,
+        currency,
         thumbnail: p.thumbnail,
         images: p.images,
         discount: r.discount,
