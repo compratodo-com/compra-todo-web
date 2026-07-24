@@ -4,8 +4,6 @@
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui";
-import { useCurrency } from "@/components/currency/CurrencySelector";
-import { convertPrice } from "@/lib/currency";
 
 interface ProductCardProps {
   product: {
@@ -13,6 +11,7 @@ interface ProductCardProps {
     title: string;
     price: number;
     originalPrice: number | null;
+    currency?: string;
     thumbnail: string | null;
     images: string[];
     discount: number;
@@ -23,14 +22,10 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const { currency } = useCurrency();
-  const displayPrice = convertPrice(product.price, currency);
-  const displayOriginalPrice = product.originalPrice ? convertPrice(product.originalPrice, currency) : null;
-  const displayDiscount = displayOriginalPrice
-    ? Math.round(((displayOriginalPrice - displayPrice) / displayOriginalPrice) * 100)
-    : 0;
+  const displayPrice = product.price;
+  const displayOriginalPrice = product.originalPrice;
+  const displayDiscount = product.discount;
   const imageUrl = product.thumbnail || product.images[0] || "/placeholder.svg";
-  // Discount calculated from converted prices above
   const isTrending = product.tags?.includes("trending");
   const isViral = product.tags?.includes("viral");
 
@@ -73,11 +68,11 @@ export function ProductCard({ product }: ProductCardProps) {
           </h3>
           <div className="flex items-baseline gap-2">
             <span className="text-lg font-bold text-purple-700">
-                  {formatCurrency(displayPrice, currency)}
+                  {formatCurrency(displayPrice, product.currency)}
                 </span>
                 {displayOriginalPrice && displayOriginalPrice > displayPrice && (
                   <span className="text-sm text-gray-400 line-through">
-                    {formatCurrency(displayOriginalPrice, currency)}
+                    {formatCurrency(displayOriginalPrice, product.currency)}
                   </span>
                 )}
           </div>

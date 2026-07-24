@@ -3,6 +3,8 @@
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
+import { convertPrice } from "@/lib/currency";
+import { useCurrency } from "@/components/currency/CurrencySelector";
 import { Button, Card, Input, Badge } from "@/components/ui";
 import { Roulette } from "@/components/game/Roulette";
 import {
@@ -21,6 +23,7 @@ interface CartItem {
   productId: string;
   title: string;
   price: number;
+  currency?: string;
   quantity: number;
   image: string;
 }
@@ -28,6 +31,7 @@ interface CartItem {
 function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { currency } = useCurrency();
   const [items, setItems] = useState<CartItem[]>([]);
   const [step, setStep] = useState<"review" | "shipping" | "coupons" | "spin" | "done">("review");
   const [confirming, setConfirming] = useState(false);
@@ -47,11 +51,11 @@ function CheckoutContent() {
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
 
     if (directProduct) {
-      fetch(`/api/catalog/${directProduct}`)
+      fetch(`/api/catalog/${directProduct}?currency=${currency}`)
         .then((r) => r.json())
         .then((product) => {
           setItems([
-            { productId: product.id, title: product.title, price: product.price, quantity: directQty, image: product.thumbnail || product.images?.[0] || "" },
+            { productId: product.id, title: product.title, price: product.price, currency: product.currency, quantity: directQty, image: product.thumbnail || product.images?.[0] || "" },
           ]);
         });
     } else {
@@ -61,11 +65,13 @@ function CheckoutContent() {
     // Cargar cupones guardados
     const saved = JSON.parse(localStorage.getItem("compra-todo-coupons") || "[]");
     setSavedCoupons(saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
   const subtotalAfterDiscount = subtotal * (1 - appliedDiscount / 100);
-  const totalWithShipping = subtotalAfterDiscount + shippingMethod.price;
+  const shippingCost = shippingMethod.price === 0 ? 0 : convertPrice(shippingMethod.price, currency);
+  const totalWithShipping = subtotalAfterDiscount + shippingCost;
 
   const handleProceedToShipping = () => setStep("shipping");
   const handleProceedToCoupons = () => {
@@ -134,8 +140,8 @@ function CheckoutContent() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{item.title}</p>
-                    <p className="text-xs text-gray-500">{item.quantity} x {formatCurrency(item.price)}</p>
-                    <p className="text-sm font-bold text-purple-700 mt-1">{formatCurrency(item.price * item.quantity)}</p>
+                    <p className="text-xs text-gray-500">{item.quantity} x {formatCurrency(item.price, item.currency)}</p>
+                    <p className="text-sm font-bold text-purple-700 mt-1">{formatCurrency(item.price * item.quantity, item.currency)}</p>
                   </div>
                 </Card>
               ))}
@@ -165,11 +171,11 @@ function CheckoutContent() {
               <Card className="p-4">
                 <h3 className="font-semibold text-gray-900 mb-3">Resumen</h3>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span className="font-medium">{formatCurrency(subtotal)}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span className="font-medium">{formatCurrency(subtotal, items[0]?.currency)}</span></div>
                   {appliedDiscount > 0 && <div className="flex justify-between text-green-600"><span>Descuento ({appliedCouponLabel})</span><span>-{appliedDiscount}%</span></div>}
                   <div className="flex justify-between text-gray-500"><span>Envío</span><span className="text-purple-600 font-medium">Por elegir</span></div>
                   <div className="border-t pt-2 flex justify-between font-bold text-lg">
-                    <span>Total</span><span className="text-purple-700">{formatCurrency(subtotalAfterDiscount)}</span>
+                    <span>Total</span><span className="text-purple-700">{formatCurrency(subtotalAfterDiscount, items[0]?.currency)}</span>
                   </div>
                 </div>
                 <Button size="lg" className="w-full mt-4" onClick={handleProceedToShipping}>
@@ -207,7 +213,7 @@ function CheckoutContent() {
                     <p className="text-sm text-gray-500">{method.description}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-purple-700">{method.price === 0 ? "Gratis" : formatCurrency(method.price)}</p>
+                    <p className="font-bold text-purple-700">{method.price === 0 ? "Gratis" : formatCurrency(convertPrice(method.price, currency), currency)}</p>
                     <p className="text-xs text-gray-400">
                       {method.hours < 1 ? `${method.hours * 60} min` : `${method.hours} hrs`}
                     </p>
@@ -271,7 +277,7 @@ function CheckoutContent() {
           <div className="mb-4 space-y-2 text-sm">
             <div className="bg-purple-50 rounded-xl p-3 flex justify-between">
               <span className="text-purple-700">🚚 Envío: <strong>{shippingMethod.icon} {shippingMethod.name}</strong></span>
-              <span className="text-purple-700 font-medium">{shippingMethod.price === 0 ? "Gratis" : formatCurrency(shippingMethod.price)}</span>
+              <span className="text-purple-700 font-medium">{shippingCost === 0 ? "Gratis" : formatCurrency(shippingCost, currency)}</span>
             </div>
             {appliedDiscount > 0 && (
               <div className="bg-green-50 rounded-xl p-3 flex justify-between">
@@ -281,7 +287,7 @@ function CheckoutContent() {
             )}
             <div className="bg-gray-50 rounded-xl p-3 flex justify-between font-bold">
               <span>Total a pagar (simulado):</span>
-              <span className="text-purple-700">{formatCurrency(totalWithShipping)}</span>
+              <span className="text-purple-700">{formatCurrency(totalWithShipping, currency)}</span>
             </div>
           </div>
 

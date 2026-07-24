@@ -27,6 +27,7 @@ type InitialProduct = {
     title: string
     price: number
     originalPrice: number | null
+    currency: string
     thumbnail: string | null
     images: string[]
     discount: number
@@ -110,6 +111,7 @@ export default function ProductDetailClient({
           productId: product.id,
           title: product.title,
           price: product.price,
+          currency: product.currency,
           quantity,
           image: images[0],
         })

@@ -58,6 +58,7 @@ export async function GET(
           ...p,
           price: rPrice,
           originalPrice: rOrigPrice,
+          currency,
           discount: rOrigPrice
             ? Math.round(((rOrigPrice - rPrice) / rOrigPrice) * 100)
             : 0,

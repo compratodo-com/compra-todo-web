@@ -10,6 +10,7 @@ interface CartItem {
   productId: string;
   title: string;
   price: number;
+  currency?: string;
   quantity: number;
   image: string;
 }
@@ -93,7 +94,7 @@ export default function CartPage() {
                       {item.title}
                     </Link>
                     <p className="text-purple-700 font-bold mt-1">
-                      {formatCurrency(item.price)}
+                      {formatCurrency(item.price, item.currency)}
                     </p>
                     <div className="flex items-center gap-3 mt-2">
                       <div className="flex items-center border border-gray-300 rounded-lg text-sm">
@@ -123,7 +124,7 @@ export default function CartPage() {
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-gray-900">
-                      {formatCurrency(item.price * item.quantity)}
+                      {formatCurrency(item.price * item.quantity, item.currency)}
                     </p>
                   </div>
                 </div>
@@ -148,7 +149,7 @@ export default function CartPage() {
                 <div className="flex justify-between">
                   <span className="text-gray-500">Subtotal</span>
                   <span className="font-medium">
-                    {formatCurrency(subtotal)}
+                    {formatCurrency(subtotal, items[0]?.currency)}
                   </span>
                 </div>
                 <div className="flex justify-between text-gray-500">
@@ -158,7 +159,7 @@ export default function CartPage() {
                 <div className="border-t pt-2 flex justify-between font-bold text-lg">
                   <span>Total</span>
                   <span className="text-purple-700">
-                    {formatCurrency(subtotal)}
+                    {formatCurrency(subtotal, items[0]?.currency)}
                   </span>
                 </div>
               </div>
