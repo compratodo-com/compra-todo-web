@@ -17,8 +17,12 @@ export async function GET(req: Request) {
     const maxParam = searchParams.get("max");
     const offsetParam = searchParams.get("offset");
 
-    // Validar clave secreta
-    if (key !== process.env.CRON_SECRET) {
+    // Validar autorización: Vercel Cron envía "Authorization: Bearer <CRON_SECRET>" de forma nativa.
+    // Se mantiene "?key=" como respaldo para pruebas manuales documentadas.
+    const authHeader = req.headers.get("authorization");
+    const bearerOk = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+    const keyOk = key === process.env.CRON_SECRET;
+    if (!bearerOk && !keyOk) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 

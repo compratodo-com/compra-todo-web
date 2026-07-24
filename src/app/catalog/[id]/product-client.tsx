@@ -1,266 +1,260 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-// Using regular img tag for reliable external image loading
-import Link from "next/link";
-import { formatCurrency } from "@/lib/utils";
-import { Button, Badge, Skeleton } from "@/components/ui";
-import { ProductGrid } from "@/components/catalog/ProductCard";
-import { useCurrency } from "@/components/currency/CurrencySelector";
-import { Events } from "@/lib/analytics-events";
+import { useState, useEffect } from "react"
+import { useParams } from "next/navigation"
+import Image from "next/image"
+import Link from "next/link"
+import { Minus, Plus } from "lucide-react"
+import { useCurrency } from "@/components/currency/CurrencySelector"
+import { ProductGrid } from "@/components/catalog/ProductCard"
 
-export default function ProductDetailClient() {
-  const { currency } = useCurrency();
-  const params = useParams();
-  const [product, setProduct] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [quantity, setQuantity] = useState(1);
-  const [addedToCart, setAddedToCart] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(0);
+type InitialProduct = {
+  id: string
+  title: string
+  description: string | null
+  price: number
+  originalPrice: number | null
+  currency: string
+  discount: number
+  images: string[] | null
+  thumbnail: string | null
+  brand: string | null
+  soldQuantity: number
+  tags: string[] | null
+  categoryName: string | null
+  related: Array<{
+    id: string
+    title: string
+    price: number
+    originalPrice: number | null
+    thumbnail: string | null
+    images: string[]
+    discount: number
+    soldQuantity: number
+    tags: string[]
+  }>
+}
 
+export default function ProductDetailClient({
+  initialProduct,
+}: {
+  initialProduct: InitialProduct
+}) {
+  const { currency } = useCurrency()
+  const params = useParams()
+  const id = typeof params.id === "string" ? params.id : ""
+
+  const [product, setProduct] = useState(initialProduct)
+  const [quantity, setQuantity] = useState(1)
+  const [selectedImage, setSelectedImage] = useState(0)
+  const [loading, setLoading] = useState(false)
+
+  // Re-fetch when currency changes (covers mount + user switching currency)
   useEffect(() => {
-    fetchProduct();
-  }, [params.id, currency]);
+    if (currency === product.currency) return
+    const fetchProduct = async () => {
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/catalog/${id}?currency=${currency}`)
+        if (!res.ok) throw new Error("Failed to fetch product")
+        const data = await res.json()
+        setProduct(data)
+      } catch (err) {
+        console.error("Error fetching product:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProduct()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currency])
 
-  const fetchProduct = async () => {
-    setLoading(true);
+  // Re-fetch when product id changes (navigating between products)
+  useEffect(() => {
+    if (id === product.id) return
+    const fetchProduct = async () => {
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/catalog/${id}?currency=${currency}`)
+        if (!res.ok) throw new Error("Failed to fetch product")
+        const data = await res.json()
+        setProduct(data)
+      } catch (err) {
+        console.error("Error fetching product:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProduct()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id])
+
+  const displayPrice = product.price.toLocaleString("es-CL", {
+    style: "currency",
+    currency: product.currency === "UF" ? "CLF" : product.currency,
+    minimumFractionDigits: product.currency === "UF" ? 2 : 0,
+    maximumFractionDigits: product.currency === "UF" ? 2 : 0,
+  })
+
+  const images = product.images && product.images.length > 0 ? product.images : ["/placeholder.svg"]
+
+  const handleAddToCart = async () => {
     try {
-      const res = await fetch(`/api/catalog/${params.id}?currency=${currency}`);
-      const data = await res.json();
-      setProduct(data);
-    } catch (error) {
-      console.error("Error loading product:", error);
-    } finally {
-      setLoading(false);
+      const cart = JSON.parse(localStorage.getItem("cart") || "[]")
+      const existingIndex = cart.findIndex((item: { productId: string }) => item.productId === product.id)
+
+      if (existingIndex >= 0) {
+        cart[existingIndex].quantity += quantity
+      } else {
+        cart.push({
+          productId: product.id,
+          title: product.title,
+          price: product.price,
+          quantity,
+          image: images[0],
+        })
+      }
+
+      localStorage.setItem("cart", JSON.stringify(cart))
+      window.dispatchEvent(new CustomEvent("cartUpdated"))
+
+      alert("✅ Producto agregado al carrito")
+    } catch (err) {
+      console.error("Error adding to cart:", err)
     }
-  };
-
-  const addToCart = () => {
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const existing = cart.findIndex((item: any) => item.productId === product.id);
-    if (existing >= 0) {
-      cart[existing].quantity += quantity;
-    } else {
-      cart.push({
-        productId: product.id,
-        title: product.title,
-        price: product.price,
-        quantity,
-        image: product.thumbnail || product.images?.[0] || "",
-      });
-    }
-    localStorage.setItem("cart", JSON.stringify(cart));
-    window.dispatchEvent(new Event("cartUpdated"));
-    Events.addToCart(product.title, product.price);
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 3000);
-  };
-
-  if (loading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid md:grid-cols-2 gap-8">
-          <Skeleton className="aspect-square rounded-xl" />
-          <div className="space-y-4">
-            <Skeleton className="h-4 w-1/4" />
-            <Skeleton className="h-8 w-3/4" />
-            <Skeleton className="h-6 w-1/3" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-        </div>
-      </div>
-    );
   }
-
-  if (!product) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-16 text-center">
-        <span className="text-6xl">😕</span>
-        <h2 className="text-xl font-bold mt-4">Producto no encontrado</h2>
-        <Link href="/catalog">
-          <Button className="mt-4">Volver al catálogo</Button>
-        </Link>
-      </div>
-    );
-  }
-
-  const images = product.images?.length > 0 ? product.images : ["/placeholder.svg"];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <nav className="text-sm text-gray-500 mb-6">
-        <Link href="/catalog" className="hover:text-purple-600">
-          Catálogo
-        </Link>
-        {product.categoryName && (
-          <>
-            <span className="mx-2">/</span>
-            <span>{product.categoryName}</span>
-          </>
+    <div className="min-h-screen bg-gray-50">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {loading && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+            <div className="rounded-lg bg-white px-6 py-4 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+                <span className="text-sm text-gray-600">Actualizando precios...</span>
+              </div>
+            </div>
+          </div>
         )}
-      </nav>
-
-      <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-        {/* Images */}
-        <div>
-          <div className="relative aspect-square bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
-            <img
-              src={images[selectedImage]}
-              alt={product.title}
-              className="w-full h-full object-contain p-8"
-            />
-            {product.discount > 0 && (
-              <div className="absolute top-4 left-4">
-                <Badge variant="danger">
-                  -{product.discount}% OFF
-                </Badge>
+        <div className="lg:grid lg:grid-cols-2 lg:gap-x-12">
+          {/* Image gallery */}
+          <div className="space-y-4">
+            <div className="relative aspect-square overflow-hidden rounded-2xl bg-white shadow-sm">
+              <Image
+                src={images[selectedImage] || "/placeholder.svg"}
+                alt={product.title}
+                fill
+                className="object-contain p-8"
+                sizes="(max-width: 768px) 100vw, 50vw"
+                priority
+              />
+            </div>
+            {images.length > 1 && (
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedImage(idx)}
+                    className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border-2 shadow-sm transition-all ${
+                      idx === selectedImage ? "border-blue-500 ring-2 ring-blue-200" : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <Image
+                      src={img || "/placeholder.svg"}
+                      alt={`${product.title} - Vista ${idx + 1}`}
+                      fill
+                      className="object-contain p-2"
+                      sizes="80px"
+                    />
+                  </button>
+                ))}
               </div>
             )}
           </div>
-          {images.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto">
-              {images.map((img: string, i: number) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedImage(i)}
-                  className={`w-16 h-16 rounded-lg border-2 overflow-hidden flex-shrink-0 ${
-                    i === selectedImage ? "border-purple-600" : "border-gray-200"
-                  }`}
-                >
-                  <img
-                      src={img}
-                      alt=""
-                      className="w-full h-full object-contain"
-                    />
-                </button>
-              ))}
+
+          {/* Product info */}
+          <div className="mt-8 lg:mt-0">
+            <div className="space-y-6">
+              {product.categoryName && (
+                <span className="inline-block rounded-full bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-700">
+                  {product.categoryName}
+                </span>
+              )}
+
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-gray-900">{product.title}</h1>
+                {product.brand && <p className="mt-1 text-sm text-gray-500">{product.brand}</p>}
+              </div>
+
+              <div className="border-t border-gray-200 pt-6">
+                <p className="text-4xl font-bold text-blue-600">{displayPrice}</p>
+              </div>
+
+              {product.description && (
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-sm font-medium text-gray-900">Descripción</h3>
+                  <div className="mt-2 space-y-2">
+                    <p className="text-base text-gray-700 leading-relaxed">{product.description}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Quantity */}
+              <div className="border-t border-gray-200 pt-6">
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-medium text-gray-900">Cantidad:</span>
+                  <div className="flex items-center rounded-xl border border-gray-300 bg-white shadow-sm">
+                    <button
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      className="flex h-10 w-10 items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-l-xl transition-colors"
+                      aria-label="Reducir cantidad"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <span className="flex h-10 w-12 items-center justify-center text-sm font-medium tabular-nums border-x border-gray-200">
+                      {quantity}
+                    </span>
+                    <button
+                      onClick={() => setQuantity((q) => q + 1)}
+                      className="flex h-10 w-10 items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-r-xl transition-colors"
+                      aria-label="Aumentar cantidad"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Add to cart */}
+              <button
+                onClick={handleAddToCart}
+                className="w-full rounded-xl bg-blue-600 px-8 py-4 text-base font-semibold text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl active:scale-[0.98]"
+              >
+                Agregar al Carrito
+              </button>
+
+              {/* Buy now */}
+              <Link
+                href={`/checkout?product=${product.id}&qty=${quantity}`}
+                className="block w-full rounded-xl bg-green-600 px-8 py-4 text-base font-semibold text-white shadow-lg text-center transition-all hover:bg-green-700 hover:shadow-xl active:scale-[0.98]"
+              >
+                Comprar Ahora
+              </Link>
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Info */}
-        <div>
-          {product.brand && (
-            <p className="text-sm text-gray-500 mb-1">{product.brand}</p>
-          )}
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            {product.title}
-          </h1>
-
-          <div className="flex items-baseline gap-3 mb-4">
-            <span className="text-3xl font-bold text-purple-700">
-              {formatCurrency(product.price)}
-            </span>
-            {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-lg text-gray-400 line-through">
-                {formatCurrency(product.originalPrice)}
-              </span>
-            )}
-            {product.discount > 0 && (
-              <Badge variant="danger">
-                {product.discount}% OFF
-              </Badge>
-            )}
+        {/* Related products */}
+        {product.related && product.related.length > 0 && (
+          <div className="mt-16">
+            <h2 className="text-2xl font-bold text-gray-900 mb-8">
+              Productos Relacionados
+            </h2>
+            <ProductGrid products={product.related} />
           </div>
-
-          {product.soldQuantity > 0 && (
-            <p className="text-sm text-gray-500 mb-6">
-              {product.soldQuantity.toLocaleString("es-CL")} vendidos
-            </p>
-          )}
-
-          {/* Quantity */}
-          <div className="flex items-center gap-3 mb-6">
-            <span className="text-sm text-gray-600">Cantidad:</span>
-            <div className="flex items-center border border-gray-300 rounded-lg">
-              <button
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="px-3 py-1 hover:bg-gray-50"
-              >
-                -
-              </button>
-              <span className="px-4 py-1 font-medium">{quantity}</span>
-              <button
-                onClick={() => setQuantity(Math.min(10, quantity + 1))}
-                className="px-3 py-1 hover:bg-gray-50"
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-3 mb-8">
-            <Button
-              size="lg"
-              className="flex-1"
-              onClick={addToCart}
-            >
-              {addedToCart ? "✓ Agregado" : "🛒 Agregar al carrito"}
-            </Button>
-            <Link href={`/checkout?product=${product.id}&qty=${quantity}`}>
-              <Button variant="outline" size="lg">
-                Comprar ahora
-              </Button>
-            </Link>
-          </div>
-
-          {/* Tags */}
-          {product.tags?.length > 0 && (
-            <div className="flex gap-2 mb-6 flex-wrap">
-              {product.tags.map((tag: string) => (
-                <Badge key={tag} variant="purple">
-                  {tag === "trending" ? "🔥 Popular" : tag === "viral" ? "🔥 Viral" : tag}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          {/* Description */}
-          {product.description && (
-            <div className="border-t pt-6">
-              <h3 className="font-semibold text-gray-900 mb-2">
-                Descripción
-              </h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                {product.description}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Related Products */}
-      {product.related?.length > 0 && (
-        <section className="mt-16">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">
-            Productos relacionados
-          </h2>
-          <ProductGrid
-            products={product.related.map((p: any) => ({
-              id: p.id,
-              title: p.title,
-              price: p.price,
-              originalPrice: p.originalPrice,
-              thumbnail: p.thumbnail,
-              images: p.images,
-              discount: p.discount,
-              soldQuantity: p.soldQuantity,
-              tags: p.tags,
-            }))}
-          />
-        </section>
-      )}
-
-      {/* Disclaimer */}
-      <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-        <p className="text-sm text-yellow-800">
-          ⚠️ Este producto es parte del simulador Compra-Todo. Los precios son
-          referenciales del mercado real y las imágenes provienen de fuentes
-          autorizadas. No se realizará ningún despacho real.
-        </p>
+        )}
       </div>
     </div>
-  );
+  )
 }
